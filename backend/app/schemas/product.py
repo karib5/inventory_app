@@ -23,6 +23,7 @@ class ProductUpdate(BaseModel):
 class ProductRead(ProductCreate):
     id: int
     company_id: int
+    is_active: bool
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -32,4 +33,9 @@ class ProductStockLocationRead(BaseModel):
     location_name: str
     warehouse_id: int | None
     warehouse_name: str | None
+    # Full Warehouse -> Area -> Rack -> Shelf breadcrumb, e.g.
+    # ["Main Warehouse", "Shirt Area", "Rack 1", "Shelf 2"] - lets the UI
+    # show exactly where a product physically lives without the caller
+    # having to walk the location hierarchy itself.
+    path: list[str]
     quantity: int

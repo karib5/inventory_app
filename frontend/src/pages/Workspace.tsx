@@ -180,6 +180,7 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
           product={products.find(p => p.id === selectedProduct.id) ?? selectedProduct}
           canAdjust={canAdjust}
           canEdit={isManager}
+          canDelete={user.role === 'super_admin' || user.role === 'company_admin'}
           refreshKey={refreshKey}
           onClose={() => setSelectedProduct(null)}
           onAction={mode => openStockModal(mode, selectedProduct)}

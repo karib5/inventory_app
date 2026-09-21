@@ -41,6 +41,7 @@ export type Warehouse = {
   company_id: number;
   code: string;
   name: string;
+  description: string | null;
   address: string | null;
   image_url: string | null;
   is_active: boolean;
@@ -51,6 +52,9 @@ export type Warehouse = {
 
 export type WarehouseDetail = Warehouse & {
   location_count: number;
+  area_count: number;
+  rack_count: number;
+  shelf_count: number;
 };
 
 export type Location = {
@@ -61,6 +65,10 @@ export type Location = {
   location_type: LocationType | null;
   name: string;
   code: string;
+  description: string | null;
+  position_x: number | null;
+  position_y: number | null;
+  capacity: number | null;
   is_active: boolean;
 };
 
@@ -75,6 +83,18 @@ export type Product = {
   quantity: number;
   minimum_stock_level: number;
   location_id: number | null;
+  is_active: boolean;
+};
+
+export type DeleteResult = {
+  result: 'deleted' | 'archived';
+  message: string;
+};
+
+export type LocationStock = {
+  location_id: number;
+  product_count: number;
+  total_units: number;
 };
 
 export type TransactionType = 'stock_in' | 'stock_out' | 'adjustment' | 'transfer_out' | 'transfer_in';
@@ -104,6 +124,7 @@ export type ProductStockLocation = {
   location_name: string;
   warehouse_id: number | null;
   warehouse_name: string | null;
+  path: string[];
   quantity: number;
 };
 
@@ -173,4 +194,12 @@ export async function uploadImage(file: File, token: string): Promise<string> {
   formData.append('file', file);
   const result = await api('/uploads', { method: 'POST', body: formData }, token);
   return result.url as string;
+}
+
+export async function confirmDeleteWarehouse(warehouseId: number, password: string, token: string): Promise<DeleteResult> {
+  return api(`/warehouses/${warehouseId}/confirm-delete`, { method: 'POST', body: JSON.stringify({ password }) }, token);
+}
+
+export async function confirmDeleteProduct(productId: number, password: string, token: string): Promise<DeleteResult> {
+  return api(`/products/${productId}/confirm-delete`, { method: 'POST', body: JSON.stringify({ password }) }, token);
 }

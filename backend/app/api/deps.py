@@ -48,3 +48,21 @@ def require_company_user(current_user: User = Depends(get_current_user)) -> User
     if current_user.company_id is None:
         raise HTTPException(status_code=403, detail="A company account is required")
     return current_user
+
+
+def authorize_company_delete(current_user: User, resource_company_id: int) -> None:
+    """Gate for destructive, password-confirmed deletes (warehouses,
+    products): only a super_admin, or the company_admin of the resource's
+    own company, may proceed. Managers and staff never can, regardless of
+    what they're otherwise allowed to create or edit - deletion is a
+    separate, narrower permission than the existing company_admin+manager
+    edit rules. A company_admin from a *different* company gets 404, same
+    as every other company-scoped endpoint in this app - a resource
+    outside your company doesn't just get a "forbidden", it doesn't
+    exist to you."""
+    if current_user.role == Role.SUPER_ADMIN:
+        return
+    if current_user.role != Role.COMPANY_ADMIN:
+        raise HTTPException(status_code=403, detail="Only a company admin or super admin can delete this")
+    if current_user.company_id != resource_company_id:
+        raise HTTPException(status_code=404, detail="Not found")

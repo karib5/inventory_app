@@ -1,12 +1,13 @@
 import React from 'react';
-import { ArrowLeftRight, HelpCircle, Minus, Package, Pencil, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
-import { api, Product, ProductStockLocation, Transaction } from '../api';
+import { ArrowLeftRight, HelpCircle, MapPin, Minus, Package, Pencil, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { api, confirmDeleteProduct, Product, ProductStockLocation, Transaction } from '../api';
 import Drawer from './Drawer';
 import { StockActionMode } from './StockActionModal';
 import ActivityIcon from './ActivityIcon';
 import ImageUpload from './ImageUpload';
 import Thumbnail from './Thumbnail';
 import StockStatusBadge from './StockStatusBadge';
+import PasswordConfirmModal from './PasswordConfirmModal';
 import { showToast } from './Toast';
 import { timeAgo } from '../utils';
 
@@ -15,6 +16,7 @@ export default function ProductDrawer({
   product,
   canAdjust,
   canEdit,
+  canDelete,
   refreshKey,
   onClose,
   onAction,
@@ -24,6 +26,7 @@ export default function ProductDrawer({
   product: Product;
   canAdjust: boolean;
   canEdit: boolean;
+  canDelete: boolean;
   refreshKey: number;
   onClose: () => void;
   onAction: (mode: StockActionMode) => void;
@@ -39,8 +42,6 @@ export default function ProductDrawer({
   const [savingDetails, setSavingDetails] = React.useState(false);
 
   const [confirmingDelete, setConfirmingDelete] = React.useState(false);
-  const [deleting, setDeleting] = React.useState(false);
-  const [deleteError, setDeleteError] = React.useState('');
   const [name, setName] = React.useState(product.name);
   const [barcode, setBarcode] = React.useState(product.barcode ?? '');
   const [description, setDescription] = React.useState(product.description ?? '');
@@ -103,18 +104,12 @@ export default function ProductDrawer({
     }
   }
 
-  async function deleteProduct() {
-    setDeleting(true);
-    setDeleteError('');
-    try {
-      await api(`/products/${product.id}`, { method: 'DELETE' }, token);
-      showToast(`"${product.name}" deleted.`);
-      onChanged();
-      onClose();
-    } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : 'Failed to delete product');
-      setDeleting(false);
-    }
+  async function handleDeleteConfirm(password: string) {
+    const result = await confirmDeleteProduct(product.id, password, token);
+    showToast(result.message);
+    setConfirmingDelete(false);
+    onChanged();
+    onClose();
   }
 
   if (editingDetails) {
@@ -163,6 +158,7 @@ export default function ProductDrawer({
 
   return (
     <Drawer onClose={onClose}>
+      {/* ---------- Product Header ---------- */}
       {editing ? (
         <div className="field">
           <label>Product Image</label>
@@ -197,6 +193,7 @@ export default function ProductDrawer({
         </div>
       )}
 
+      {/* ---------- Inventory Summary ---------- */}
       <div className="stats" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: 0, marginTop: 16 }}>
         <div className="card">
           <span className="stat-icon">
@@ -213,11 +210,12 @@ export default function ProductDrawer({
           </span>
           <div>
             <strong>{product.minimum_stock_level}</strong>
-            <span>Minimum Level</span>
+            <span>Minimum Stock</span>
           </div>
         </div>
       </div>
 
+      {/* ---------- Actions ---------- */}
       <div className="drawer-actions">
         <button className="primary" onClick={() => onAction('stock-in')}>
           <Plus size={14} /> Stock In
@@ -235,14 +233,20 @@ export default function ProductDrawer({
         )}
       </div>
 
+      {/* ---------- Storage ---------- */}
       <div className="drawer-section">
-        <h4>Locations</h4>
+        <h4>Storage</h4>
         {stockByLocation.length ? (
           stockByLocation.map(s => (
-            <div className="location-row" key={s.location_id}>
-              <span>
-                {s.warehouse_name ? `${s.warehouse_name} / ` : ''}
-                {s.location_name} ({s.location_code})
+            <div className="location-row storage-row" key={s.location_id}>
+              <span className="storage-path">
+                <MapPin size={13} />
+                {s.path.map((segment, i) => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <span className="storage-path-sep">›</span>}
+                    <span>{segment}</span>
+                  </React.Fragment>
+                ))}
               </span>
               <strong>{s.quantity}</strong>
             </div>
@@ -252,6 +256,7 @@ export default function ProductDrawer({
         )}
       </div>
 
+      {/* ---------- Recent Activity ---------- */}
       <div className="drawer-section">
         <h4>Recent Activity</h4>
         {activity.length ? (
@@ -274,30 +279,25 @@ export default function ProductDrawer({
         )}
       </div>
 
-      {canEdit && (
+      {/* ---------- Danger Zone ---------- */}
+      {canDelete && (
         <div className="drawer-section danger-zone">
           <h4>Danger Zone</h4>
-          {confirmingDelete ? (
-            <div className="danger-zone-confirm">
-              <p>
-                Delete <strong>{product.name}</strong>? This can't be undone.
-              </p>
-              {deleteError && <div className="error">{deleteError}</div>}
-              <div className="modal-actions">
-                <button className="danger" onClick={deleteProduct} disabled={deleting}>
-                  {deleting ? 'Deleting...' : 'Yes, delete product'}
-                </button>
-                <button onClick={() => setConfirmingDelete(false)} disabled={deleting}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button className="danger" onClick={() => setConfirmingDelete(true)}>
-              <Trash2 size={14} /> Delete Product
-            </button>
-          )}
+          <button className="danger" onClick={() => setConfirmingDelete(true)}>
+            <Trash2 size={14} /> Delete Product
+          </button>
         </div>
+      )}
+
+      {confirmingDelete && (
+        <PasswordConfirmModal
+          title="Delete Product?"
+          targetName={product.name}
+          explanation="If this product has inventory history, it will be archived instead of deleted so that history is never lost - it will no longer appear in your catalog."
+          confirmLabel="Delete Product"
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={handleDeleteConfirm}
+        />
       )}
     </Drawer>
   );
