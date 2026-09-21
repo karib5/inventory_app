@@ -1,6 +1,6 @@
 import React from 'react';
 import { Building2 } from 'lucide-react';
-import { api, User } from './api';
+import { api, setUnauthorizedHandler, User } from './api';
 import AppShell from './layout/AppShell';
 import Login from './pages/Login';
 import SuperAdminHome from './pages/SuperAdminHome';
@@ -34,28 +34,47 @@ function SuperAdminWorkspace({ token, user, onLogout }: { token: string; user: U
   );
 }
 
+const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please log in again.';
+
 export default function App() {
   const [token, setToken] = React.useState(() => localStorage.getItem('inventory_token') || '');
   const [user, setUser] = React.useState<User | null>(null);
+  const [sessionMessage, setSessionMessage] = React.useState('');
+
+  // The one place session state gets torn down, whether that's the user
+  // clicking Log out, a stale token found at startup, or the global 401
+  // handler below reacting to an expired/invalid token from ANY API call
+  // anywhere in the app.
+  const clearSession = React.useCallback((message?: string) => {
+    localStorage.removeItem('inventory_token');
+    setToken('');
+    setUser(null);
+    setSessionMessage(message ?? '');
+  }, []);
+
+  React.useEffect(() => {
+    setUnauthorizedHandler(() => clearSession(SESSION_EXPIRED_MESSAGE));
+    return () => setUnauthorizedHandler(null);
+  }, [clearSession]);
 
   React.useEffect(() => {
     if (!token) return;
     api('/auth/me', {}, token)
       .then(setUser)
-      .catch(() => {
-        localStorage.removeItem('inventory_token');
-        setToken('');
-      });
-  }, [token]);
+      .catch(() => clearSession(SESSION_EXPIRED_MESSAGE));
+  }, [token, clearSession]);
 
   function logout() {
-    localStorage.removeItem('inventory_token');
-    setToken('');
-    setUser(null);
+    clearSession();
+  }
+
+  function handleLoggedIn(newToken: string) {
+    setSessionMessage('');
+    setToken(newToken);
   }
 
   if (!token || !user) {
-    return <Login onLoggedIn={setToken} />;
+    return <Login onLoggedIn={handleLoggedIn} sessionMessage={sessionMessage} />;
   }
 
   if (user.role === 'super_admin') {

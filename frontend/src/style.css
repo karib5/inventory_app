@@ -59,6 +59,7 @@ button.icon-btn{padding:9px;border-radius:8px}
 .login-card button{width:100%;background:var(--accent);border-color:var(--accent);color:white;justify-content:center}
 .login-card small{display:block;color:var(--text-muted);margin-top:14px}
 .error{padding:10px 14px;background:var(--danger-soft);color:var(--danger);border-radius:var(--radius);font-size:14px}
+.session-banner{padding:10px 14px;background:var(--warning-soft);color:var(--warning);border-radius:var(--radius);font-size:14px;margin-top:-8px}
 
 .inline-form{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .inline-form input,.inline-form select{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px}
