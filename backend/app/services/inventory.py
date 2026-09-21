@@ -14,17 +14,19 @@ from app.models import (
 )
 
 
-def _get_or_create_stock(db: Session, product: Product, location_id: int) -> ProductStock:
+def _get_or_create_stock(db: Session, product: Product, location_id: int, seed_quantity: int) -> ProductStock:
     """Returns the (locked) ProductStock row for this product/location, creating it
     first if needed. A brand-new row for the product's current "home" location
-    (product.location_id) is seeded with the product's existing total quantity,
-    since that's where all of its stock has implicitly lived until now; any other
-    location starts at zero."""
+    (product.location_id) is seeded with seed_quantity - the product's total
+    quantity *before* the caller's change is applied, since that's where all of
+    its stock has implicitly lived until now; any other location starts at zero.
+    Callers that haven't changed product.quantity (e.g. a transfer) just pass its
+    current value."""
     stmt = pg_insert(ProductStock).values(
         company_id=product.company_id,
         product_id=product.id,
         location_id=location_id,
-        quantity=product.quantity if location_id == product.location_id else 0,
+        quantity=seed_quantity if location_id == product.location_id else 0,
     ).on_conflict_do_nothing(index_elements=["product_id", "location_id"])
     db.execute(stmt)
 
@@ -80,7 +82,7 @@ def apply_stock_change(
         location = _get_company_location(db, company_id, effective_location_id)
         if change > 0 and not location.is_active:
             raise HTTPException(400, "Cannot add stock to a deactivated location")
-        stock = _get_or_create_stock(db, product, effective_location_id)
+        stock = _get_or_create_stock(db, product, effective_location_id, previous_quantity)
         stock_new = stock.quantity + change
         if stock_new < 0:
             raise HTTPException(400, "Insufficient stock at this location")
@@ -135,8 +137,8 @@ def transfer_stock(
 
     first_id, second_id = sorted([from_location_id, to_location_id])
     stock_by_location = {
-        first_id: _get_or_create_stock(db, product, first_id),
-        second_id: _get_or_create_stock(db, product, second_id),
+        first_id: _get_or_create_stock(db, product, first_id, product.quantity),
+        second_id: _get_or_create_stock(db, product, second_id, product.quantity),
     }
     source_stock = stock_by_location[from_location_id]
     dest_stock = stock_by_location[to_location_id]
