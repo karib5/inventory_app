@@ -226,7 +226,7 @@ export default function Inventory({
         {warehouseFilter && (
           <>
             <select value={areaFilter} onChange={e => changeAreaFilter(e.target.value)}>
-              <option value="">All areas</option>
+              <option value="">All zones</option>
               {areaOptions.map(a => (
                 <option key={a.id} value={a.id}>
                   {a.name}

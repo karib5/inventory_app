@@ -223,7 +223,7 @@ export default function WarehouseDetail({
             </span>
             <div>
               <strong>{warehouse.area_count}</strong>
-              <span>Areas</span>
+              <span>Zones</span>
             </div>
           </div>
           <div className="card">
@@ -259,7 +259,7 @@ export default function WarehouseDetail({
       <section className="card">
         <h2 style={{ marginBottom: 4 }}>Warehouse Layout</h2>
         <p style={{ color: 'var(--text-muted)', marginTop: 0, marginBottom: 16 }}>
-          Click an area to see its racks and shelves. {canManage && 'Drag a rack to reposition it, or drag "New Rack" into an empty spot.'}
+          Click a zone to see its racks and shelves. {canManage && 'Drag a rack to reposition it, or drag "New Rack" into an empty spot.'}
         </p>
         <WarehouseLayout token={token} warehouseId={warehouseId} canManage={canManage} onChanged={onChanged} />
       </section>

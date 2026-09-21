@@ -154,14 +154,14 @@ export default function WarehouseLayout({
         },
         token,
       );
-      showToast(`"${areaName}" area created.`);
+      showToast(`"${areaName}" zone created.`);
       setAddingArea(false);
       setAreaName('');
       setAreaDescription('');
       setAreaCapacity('4');
       await refresh();
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Failed to create area', 'error');
+      showToast(e instanceof Error ? e.message : 'Failed to create zone', 'error');
     } finally {
       setSavingArea(false);
     }
@@ -182,11 +182,11 @@ export default function WarehouseLayout({
         { method: 'PATCH', body: JSON.stringify({ name: editAreaName, description: editAreaDescription || null }) },
         token,
       );
-      showToast('Area updated.');
+      showToast('Zone updated.');
       setEditingArea(false);
       await refresh();
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Failed to update area', 'error');
+      showToast(e instanceof Error ? e.message : 'Failed to update zone', 'error');
     } finally {
       setSavingAreaEdit(false);
     }
@@ -240,7 +240,7 @@ export default function WarehouseLayout({
     } finally {
       setRemovingArea(false);
     }
-    showToast(force ? 'Area removed and its stock cleared.' : 'Area removed.');
+    showToast(force ? 'Zone removed and its stock cleared.' : 'Zone removed.');
     setConfirmingRemoveArea(false);
     setAreaId(null);
     await refresh();
@@ -320,7 +320,7 @@ export default function WarehouseLayout({
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="field" style={{ marginBottom: 8 }}>
-                <input value={editAreaName} onChange={e => setEditAreaName(e.target.value)} required autoFocus placeholder="Area name" />
+                <input value={editAreaName} onChange={e => setEditAreaName(e.target.value)} required autoFocus placeholder="Zone name" />
               </div>
               <div className="field" style={{ marginBottom: 0 }}>
                 <input
@@ -352,7 +352,7 @@ export default function WarehouseLayout({
               </p>
             </div>
             {canManage && (
-              <button className="icon-btn ghost" onClick={() => startEditingArea(currentArea)} aria-label="Edit area">
+              <button className="icon-btn ghost" onClick={() => startEditingArea(currentArea)} aria-label="Edit zone">
                 <Pencil size={14} />
               </button>
             )}
@@ -438,9 +438,9 @@ export default function WarehouseLayout({
 
         {canManage && (
           <div className="danger-zone" style={{ marginTop: 24 }}>
-            <h4>Danger Zone — {currentArea.name} (Area)</h4>
+            <h4>Danger Zone — {currentArea.name} (Zone)</h4>
             <button className="danger" onClick={handleRemoveAreaClick} disabled={removingArea}>
-              <Trash2 size={14} /> {removingArea ? 'Removing...' : 'Remove Area'}
+              <Trash2 size={14} /> {removingArea ? 'Removing...' : 'Remove Zone'}
             </button>
           </div>
         )}
@@ -453,7 +453,7 @@ export default function WarehouseLayout({
             );
             return (
               <RemoveLocationConfirm
-                title="Remove Area?"
+                title="Remove Zone?"
                 targetName={currentArea.name}
                 productCount={stats.products}
                 totalUnits={stats.units}
@@ -492,14 +492,14 @@ export default function WarehouseLayout({
     <div className="warehouse-view" key="warehouse-root">
       {canManage && (
         <div className="inline-form" style={{ marginBottom: 16 }}>
-          <button onClick={() => setAddingArea(a => !a)}>{addingArea ? 'Cancel' : '+ Add Area'}</button>
+          <button onClick={() => setAddingArea(a => !a)}>{addingArea ? 'Cancel' : '+ Add Zone'}</button>
         </div>
       )}
 
       {addingArea && canManage && (
         <form onSubmit={addArea} className="card" style={{ marginBottom: 16 }}>
           <div className="inline-form">
-            <input value={areaName} onChange={e => setAreaName(e.target.value)} placeholder="Area name (e.g. Shirt Area)" required />
+            <input value={areaName} onChange={e => setAreaName(e.target.value)} placeholder="Zone name (e.g. Shirt Zone)" required />
             <input value={areaDescription} onChange={e => setAreaDescription(e.target.value)} placeholder="Description (optional)" />
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
               Max racks
@@ -512,7 +512,7 @@ export default function WarehouseLayout({
               />
             </label>
             <button className="primary" disabled={savingArea}>
-              {savingArea ? 'Creating...' : 'Create Area'}
+              {savingArea ? 'Creating...' : 'Create Zone'}
             </button>
           </div>
         </form>
@@ -520,8 +520,8 @@ export default function WarehouseLayout({
 
       {areas.length === 0 ? (
         <div className="empty-state">
-          <h3>No storage areas yet</h3>
-          <p>Add your first area (a room, section, or zone) to start laying out this warehouse.</p>
+          <h3>No storage zones yet</h3>
+          <p>Add your first zone (a room, section, or area) to start laying out this warehouse.</p>
         </div>
       ) : (
         <div className="area-grid">

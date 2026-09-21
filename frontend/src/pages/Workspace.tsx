@@ -129,6 +129,8 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
           token={token}
           user={user}
           products={products}
+          warehouses={warehouses}
+          locations={locations}
           refreshKey={refreshKey}
           onQuickAction={mode => openStockModal(mode)}
           onAddProduct={() => openAddProduct()}

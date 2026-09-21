@@ -2,14 +2,20 @@ import React from 'react';
 import {
   ArrowLeftRight,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Layers,
+  LayoutGrid,
   Minus,
   Package,
   PackagePlus,
   PackageX,
   Plus,
+  Rows3,
   ScanLine,
+  Warehouse as WarehouseIcon,
 } from 'lucide-react';
-import { api, Product, Transaction, User } from '../api';
+import { api, Location, Product, Transaction, User, Warehouse } from '../api';
 import { StockActionMode } from '../components/StockActionModal';
 import ActivityIcon from '../components/ActivityIcon';
 import { getStockStatus, timeAgo } from '../utils';
@@ -25,6 +31,8 @@ export default function Dashboard({
   token,
   user,
   products,
+  warehouses,
+  locations,
   refreshKey,
   onQuickAction,
   onAddProduct,
@@ -33,12 +41,15 @@ export default function Dashboard({
   token: string;
   user: User;
   products: Product[];
+  warehouses: Warehouse[];
+  locations: Location[];
   refreshKey: number;
   onQuickAction: (mode: StockActionMode) => void;
   onAddProduct: () => void;
   onViewFiltered: (filter: 'low' | 'out') => void;
 }) {
   const [recent, setRecent] = React.useState<Transaction[]>([]);
+  const [showAdvanced, setShowAdvanced] = React.useState(false);
 
   React.useEffect(() => {
     api('/inventory/transactions?limit=6', {}, token)
@@ -53,6 +64,10 @@ export default function Dashboard({
   const lowStockCount = products.filter(p => getStockStatus(p) === 'low').length;
   const outOfStock = products.filter(p => getStockStatus(p) === 'out').length;
   const needsAttention = lowStockCount + outOfStock;
+
+  const zoneCount = locations.filter(l => l.is_active && l.location_type === 'zone').length;
+  const rackCount = locations.filter(l => l.is_active && l.location_type === 'rack').length;
+  const shelfCount = locations.filter(l => l.is_active && l.location_type === 'shelf').length;
 
   return (
     <>
@@ -138,6 +153,57 @@ export default function Dashboard({
             </div>
           </div>
         </div>
+
+        <button
+          type="button"
+          className="ghost"
+          onClick={() => setShowAdvanced(s => !s)}
+          style={{ padding: '4px 0', marginTop: 14, fontSize: 13 }}
+        >
+          {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          {showAdvanced ? 'View less' : 'View more'}
+        </button>
+
+        {showAdvanced && (
+          <div className="stats" style={{ marginTop: 14, marginBottom: 0 }}>
+            <div className="card">
+              <span className="stat-icon">
+                <WarehouseIcon size={19} />
+              </span>
+              <div>
+                <strong>{warehouses.length}</strong>
+                <span>Warehouses</span>
+              </div>
+            </div>
+            <div className="card">
+              <span className="stat-icon">
+                <LayoutGrid size={19} />
+              </span>
+              <div>
+                <strong>{zoneCount}</strong>
+                <span>Zones</span>
+              </div>
+            </div>
+            <div className="card">
+              <span className="stat-icon">
+                <Layers size={19} />
+              </span>
+              <div>
+                <strong>{rackCount}</strong>
+                <span>Racks</span>
+              </div>
+            </div>
+            <div className="card">
+              <span className="stat-icon">
+                <Rows3 size={19} />
+              </span>
+              <div>
+                <strong>{shelfCount}</strong>
+                <span>Shelves</span>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="card">
