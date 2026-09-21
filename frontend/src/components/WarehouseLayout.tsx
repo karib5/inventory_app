@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Layers, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Layers, Pencil, Plus, Trash2 } from 'lucide-react';
 import { api, confirmRemoveLocation, Location, LocationStock, transferOutLocation } from '../api';
 import { SkeletonRows } from './Skeleton';
 import AreaIcon from './AreaIcon';
@@ -60,6 +60,15 @@ export default function WarehouseLayout({
   const [areaDescription, setAreaDescription] = React.useState('');
   const [areaCapacity, setAreaCapacity] = React.useState('4');
   const [savingArea, setSavingArea] = React.useState(false);
+
+  const [editingArea, setEditingArea] = React.useState(false);
+  const [editAreaName, setEditAreaName] = React.useState('');
+  const [editAreaDescription, setEditAreaDescription] = React.useState('');
+  const [savingAreaEdit, setSavingAreaEdit] = React.useState(false);
+
+  React.useEffect(() => {
+    setEditingArea(false);
+  }, [areaId]);
 
   const [dragOverCell, setDragOverCell] = React.useState<string | null>(null);
 
@@ -155,6 +164,31 @@ export default function WarehouseLayout({
       showToast(e instanceof Error ? e.message : 'Failed to create area', 'error');
     } finally {
       setSavingArea(false);
+    }
+  }
+
+  function startEditingArea(area: Location) {
+    setEditAreaName(area.name);
+    setEditAreaDescription(area.description ?? '');
+    setEditingArea(true);
+  }
+
+  async function saveAreaEdit(event: React.FormEvent, areaIdToEdit: number) {
+    event.preventDefault();
+    setSavingAreaEdit(true);
+    try {
+      await api(
+        `/locations/${areaIdToEdit}`,
+        { method: 'PATCH', body: JSON.stringify({ name: editAreaName, description: editAreaDescription || null }) },
+        token,
+      );
+      showToast('Area updated.');
+      setEditingArea(false);
+      await refresh();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Failed to update area', 'error');
+    } finally {
+      setSavingAreaEdit(false);
     }
   }
 
@@ -279,23 +313,56 @@ export default function WarehouseLayout({
           <ArrowLeft size={15} /> Back to Warehouse
         </button>
 
-        <div className="area-view-header">
-          <span className="area-view-icon">
-            <AreaIcon name={currentArea.name} size={22} />
-          </span>
-          <div>
-            <h2 style={{ margin: 0 }}>{currentArea.name}</h2>
-            <p style={{ color: 'var(--text-muted)', margin: '2px 0 0' }}>
-              {stats.products} products · {stats.units} units
-              {currentArea.description ? ` · ${currentArea.description}` : ''}
-            </p>
-          </div>
-          {capacity != null && (
-            <span className={`badge ${atCapacity ? 'badge-inactive' : 'badge-active'}`} style={{ marginLeft: 'auto' }}>
-              {racks.length} / {capacity} Racks
+        {editingArea ? (
+          <form className="area-view-header area-edit-form" onSubmit={e => saveAreaEdit(e, currentArea.id)}>
+            <span className="area-view-icon">
+              <AreaIcon name={currentArea.name} size={22} />
             </span>
-          )}
-        </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="field" style={{ marginBottom: 8 }}>
+                <input value={editAreaName} onChange={e => setEditAreaName(e.target.value)} required autoFocus placeholder="Area name" />
+              </div>
+              <div className="field" style={{ marginBottom: 0 }}>
+                <input
+                  value={editAreaDescription}
+                  onChange={e => setEditAreaDescription(e.target.value)}
+                  placeholder="Description (optional)"
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="primary" disabled={savingAreaEdit}>
+                {savingAreaEdit ? 'Saving...' : 'Save'}
+              </button>
+              <button type="button" onClick={() => setEditingArea(false)} disabled={savingAreaEdit}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="area-view-header">
+            <span className="area-view-icon">
+              <AreaIcon name={currentArea.name} size={22} />
+            </span>
+            <div>
+              <h2 style={{ margin: 0 }}>{currentArea.name}</h2>
+              <p style={{ color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                {stats.products} products · {stats.units} units
+                {currentArea.description ? ` · ${currentArea.description}` : ''}
+              </p>
+            </div>
+            {canManage && (
+              <button className="icon-btn ghost" onClick={() => startEditingArea(currentArea)} aria-label="Edit area">
+                <Pencil size={14} />
+              </button>
+            )}
+            {capacity != null && (
+              <span className={`badge ${atCapacity ? 'badge-inactive' : 'badge-active'}`} style={{ marginLeft: 'auto' }}>
+                {racks.length} / {capacity} Racks
+              </span>
+            )}
+          </div>
+        )}
 
         {canManage && (
           <div className="rack-toolbar">

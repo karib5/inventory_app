@@ -1,26 +1,8 @@
 import React from 'react';
-import {
-  ArrowLeftRight,
-  Boxes,
-  Eye,
-  EyeOff,
-  Loader2,
-  PackagePlus,
-  ShieldCheck,
-  TrendingUp,
-  Warehouse,
-  Zap,
-} from 'lucide-react';
+import { Boxes, Eye, EyeOff, Loader2, ShieldCheck, Truck } from 'lucide-react';
 import { api } from '../api';
 import ThemeToggle from '../components/ThemeToggle';
-
-const FEATURES = [
-  { icon: Zap, label: 'Real-time inventory' },
-  { icon: Warehouse, label: 'Warehouse management' },
-  { icon: TrendingUp, label: 'Stock tracking' },
-];
-
-const PREVIEW_BARS = [42, 68, 50, 82, 60, 94, 74];
+import WarehouseScene from '../components/WarehouseScene';
 
 export default function Login({
   onLoggedIn,
@@ -55,72 +37,47 @@ export default function Login({
   return (
     <main className="auth-page">
       <section className="auth-brand" aria-hidden="true">
+        <WarehouseScene />
         <div className="auth-brand-grid" />
+        <div className="auth-brand-scrim" />
         <div className="auth-brand-content">
           <div className="auth-logo">
             <Boxes size={22} /> Inventory
           </div>
           <h1>Manage your entire warehouse operation in one place.</h1>
           <p>Track products, warehouses, and stock movements in real time — built for teams that can't afford inventory surprises.</p>
-          <ul className="auth-features">
-            {FEATURES.map(({ icon: Icon, label }) => (
-              <li key={label}>
-                <span className="auth-feature-icon">
-                  <Icon size={16} />
-                </span>
-                {label}
-              </li>
-            ))}
-          </ul>
-
-          <div className="auth-preview-card">
-            <div className="auth-preview-header">
-              <span className="auth-preview-dot" />
-              <span className="auth-preview-dot" />
-              <span className="auth-preview-dot" />
-              <span className="auth-preview-title">Warehouse Overview</span>
-            </div>
-            <div className="auth-preview-stats">
-              <div>
-                <strong>1,284</strong>
-                <span>Products</span>
-              </div>
-              <div>
-                <strong>12</strong>
-                <span>Warehouses</span>
-              </div>
-              <div>
-                <strong>99.2%</strong>
-                <span>Order Accuracy</span>
-              </div>
-            </div>
-            <div className="auth-preview-chart">
-              {PREVIEW_BARS.map((h, i) => (
-                <span key={i} style={{ height: `${h}%` }} />
-              ))}
-            </div>
-            <div className="auth-preview-rows">
-              <div className="auth-preview-row">
-                <span className="auth-preview-row-icon in">
-                  <PackagePlus size={11} />
-                </span>
-                <span>Stock added — Blue Shirt</span>
-                <strong>+40</strong>
-              </div>
-              <div className="auth-preview-row">
-                <span className="auth-preview-row-icon out">
-                  <ArrowLeftRight size={11} />
-                </span>
-                <span>Transfer — Rack 3 → Rack 1</span>
-                <strong>18</strong>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
       <section className="auth-form-side">
         <ThemeToggle collapsed className="theme-toggle-login" />
+
+        <div className="auth-route-icon">
+          <svg width="140" height="70" viewBox="0 0 140 70" aria-hidden="true">
+            <path d="M4 60 Q 60 60 90 30 T 130 12" fill="none" stroke="var(--accent)" strokeWidth="2" strokeDasharray="5 6" opacity="0.55" />
+          </svg>
+          <Truck size={24} className="auth-route-truck" strokeWidth={1.75} aria-hidden="true" />
+        </div>
+
+        <svg className="auth-corner-icon auth-corner-left" width="120" height="110" viewBox="0 0 120 110" aria-hidden="true">
+          <rect x="14" y="46" width="40" height="40" rx="2" fill="var(--accent)" />
+          <rect x="50" y="30" width="44" height="56" rx="2" fill="var(--accent)" opacity="0.75" />
+          <rect x="60" y="42" width="24" height="4" fill="var(--card)" opacity="0.6" />
+          <rect x="60" y="52" width="24" height="4" fill="var(--card)" opacity="0.6" />
+          <rect x="24" y="58" width="20" height="4" fill="var(--card)" opacity="0.6" />
+        </svg>
+
+        <svg className="auth-corner-icon auth-corner-right" width="140" height="110" viewBox="0 0 140 110" aria-hidden="true">
+          <path d="M0 110 V54 L28 34 L56 54 V110 Z" fill="var(--accent)" opacity="0.8" />
+          <rect x="8" y="62" width="14" height="14" fill="var(--card)" opacity="0.55" />
+          <rect x="34" y="62" width="14" height="14" fill="var(--card)" opacity="0.55" />
+          <rect x="8" y="84" width="14" height="14" fill="var(--card)" opacity="0.55" />
+          <rect x="34" y="84" width="14" height="14" fill="var(--card)" opacity="0.55" />
+          <path d="M60 110 V70 H126 V110 Z" fill="var(--accent)" opacity="0.55" />
+          <rect x="70" y="80" width="16" height="16" fill="var(--card)" opacity="0.5" />
+          <rect x="100" y="80" width="16" height="16" fill="var(--card)" opacity="0.5" />
+        </svg>
+
         <form className="auth-card" onSubmit={login} noValidate>
           <div className="auth-card-logo">
             <Boxes size={24} />

@@ -104,42 +104,25 @@ button.icon-btn{padding:9px;border-radius:8px}
 
 /* ---------- auth / login page ---------- */
 .auth-page{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr}
-.auth-brand{position:relative;background:linear-gradient(160deg,var(--navy),#152238 60%,var(--navy-light));color:#fff;padding:56px;display:flex;align-items:center;overflow:hidden}
+.auth-brand{position:relative;background:var(--navy);color:#fff;padding:64px 56px;display:flex;align-items:flex-start;overflow:hidden}
+.warehouse-scene{position:absolute;inset:0;width:100%;height:100%;display:block}
 .auth-brand-grid{position:absolute;inset:0;background-image:linear-gradient(#ffffff12 1px,transparent 1px),linear-gradient(90deg,#ffffff12 1px,transparent 1px);background-size:42px 42px;mask-image:radial-gradient(ellipse 70% 60% at 30% 30%,#000 40%,transparent 85%)}
-.auth-brand-content{position:relative;max-width:440px}
-.auth-logo{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:16px;color:#fff;margin-bottom:48px}
+.auth-brand-scrim{position:absolute;inset:0;background:linear-gradient(180deg,#060b16d9 0%,#060b1666 38%,#060b1600 62%);pointer-events:none}
+.auth-brand-content{position:relative;z-index:2;max-width:440px}
+.auth-logo{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:16px;color:#fff;margin-bottom:32px}
 .auth-logo svg{color:var(--accent)}
-.auth-brand-content h1{font-size:30px;line-height:1.25;margin:0 0 14px;letter-spacing:-0.01em}
-.auth-brand-content p{color:#b6c0d4;font-size:15px;line-height:1.6;margin:0 0 32px}
-.auth-features{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
-.auth-features li{display:flex;align-items:center;gap:12px;color:#dbe2ef;font-size:14px;font-weight:600}
-.auth-feature-icon{width:30px;height:30px;border-radius:8px;background:#ffffff14;color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-
-/* A small "product screenshot" mockup - fills the brand panel's empty lower
-   half with something that actually looks like the app, giving the login
-   page a real management-software feel instead of just a logo and a list.
-   Fixed light-on-glass colors, not theme tokens: it always sits on the
-   permanently-dark brand panel, in both app themes. */
-.auth-preview-card{margin-top:32px;max-width:380px;background:#ffffff0f;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid #ffffff22;border-radius:16px;padding:20px;box-shadow:0 24px 60px #00000045}
-.auth-preview-header{display:flex;align-items:center;gap:5px;margin-bottom:18px}
-.auth-preview-dot{width:7px;height:7px;border-radius:50%;background:#ffffff30}
-.auth-preview-title{margin-left:8px;font-size:12px;font-weight:700;color:#c7d1e3;letter-spacing:.02em}
-.auth-preview-stats{display:flex;gap:22px;margin-bottom:18px}
-.auth-preview-stats strong{display:block;font-size:20px;color:#fff;font-weight:800;line-height:1.1}
-.auth-preview-stats span{display:block;font-size:11px;color:#93a0c2;margin-top:3px}
-.auth-preview-chart{display:flex;align-items:flex-end;gap:6px;height:56px;margin-bottom:18px}
-.auth-preview-chart span{flex:1;background:linear-gradient(180deg,#5b9cffcc,#5b9cff33);border-radius:3px 3px 0 0}
-.auth-preview-rows{display:flex;flex-direction:column;gap:11px;border-top:1px solid #ffffff18;padding-top:14px}
-.auth-preview-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#dbe2f3}
-.auth-preview-row strong{margin-left:auto;color:#fff;font-weight:700}
-.auth-preview-row-icon{width:20px;height:20px;border-radius:6px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center}
-.auth-preview-row-icon.in{background:#4ade8030;color:#86efac}
-.auth-preview-row-icon.out{background:#5b9cff30;color:#93c5fd}
-@media(max-width:900px){.auth-preview-card{display:none}}
+.auth-brand-content h1{font-size:30px;line-height:1.25;margin:0 0 14px;letter-spacing:-0.01em;text-shadow:0 2px 16px #00000060}
+.auth-brand-content p{color:#dbe2ef;font-size:15px;line-height:1.6;margin:0;text-shadow:0 2px 12px #00000060}
 
 .auth-form-side{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;background:var(--bg);overflow:hidden}
 .auth-form-side::before{content:'';position:absolute;width:520px;height:520px;background:radial-gradient(circle,var(--accent-soft) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);opacity:.7;pointer-events:none}
-.theme-toggle-login{position:absolute;top:20px;right:20px;padding:9px;border-radius:8px;z-index:1}
+.theme-toggle-login{position:absolute;top:20px;right:20px;padding:9px;border-radius:8px;z-index:2}
+.auth-route-icon{position:absolute;top:78px;right:36px;z-index:0;width:140px;height:70px}
+.auth-route-truck{position:absolute;top:-4px;right:2px;color:var(--accent)}
+.auth-corner-icon{position:absolute;bottom:0;z-index:0;opacity:.5}
+.auth-corner-left{left:0}
+.auth-corner-right{right:0}
+@media(max-width:900px){.auth-route-icon,.auth-corner-icon{display:none}}
 .auth-card{position:relative;z-index:1;width:min(400px,100%);background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:36px 32px}
 .auth-card-logo{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
 .auth-card h2{margin:0 0 4px;font-size:22px}
@@ -380,6 +363,26 @@ button.ghost.transfer-first-btn:hover{background:var(--danger-soft);filter:brigh
 .tile .tile-title{font-weight:700}
 .tile .tile-desc{color:var(--text-muted);font-size:13px}
 
+/* ---------- view toggle (grid / list) ---------- */
+.view-toggle{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:3px}
+.view-toggle button{background:transparent;border-color:transparent;padding:7px 12px;font-size:13px;color:var(--text-muted)}
+.view-toggle button:hover{background:var(--surface-hover)}
+.view-toggle button.active{background:var(--card);color:var(--text);box-shadow:0 1px 2px #0f1b2d1a}
+
+/* ---------- product cards (grid view) ---------- */
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.product-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:border-color .12s,transform .12s}
+.product-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.product-card-image{display:flex;align-items:center;justify-content:center;padding:18px;background:linear-gradient(135deg,var(--surface-gradient-a),var(--surface-gradient-b))}
+.product-card-image .thumb-lg{width:84px;height:84px}
+.product-card-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px}
+.product-card-title{font-weight:700;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.product-card-sku{color:var(--text-muted);font-size:12.5px}
+.product-card-stats{display:flex;gap:18px;margin:2px 0 4px}
+.product-card-stats strong{display:block;font-size:16px;line-height:1.2}
+.product-card-stats span{color:var(--text-muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
+.product-card .badge{align-self:flex-start}
+
 /* ---------- warehouse cards ----------
    Full-bleed photo by default; name/stats/actions live in a bottom sheet
    that's translated out of view until hover/focus, then slides up over a
@@ -427,6 +430,8 @@ button.ghost.transfer-first-btn:hover{background:var(--danger-soft);filter:brigh
 .area-card-meta{color:var(--text-muted);font-size:12.5px}
 
 .area-view-header{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.area-edit-form{align-items:flex-start}
+.area-edit-form .field input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--text)}
 .area-view-icon{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
 .rack-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
