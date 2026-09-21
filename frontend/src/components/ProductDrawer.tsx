@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeftRight, HelpCircle, Minus, Package, Pencil, Plus, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeftRight, HelpCircle, Minus, Package, Pencil, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { api, Product, ProductStockLocation, Transaction } from '../api';
 import Drawer from './Drawer';
 import { StockActionMode } from './StockActionModal';
@@ -37,6 +37,10 @@ export default function ProductDrawer({
   const [editingDetails, setEditingDetails] = React.useState(false);
   const [detailsError, setDetailsError] = React.useState('');
   const [savingDetails, setSavingDetails] = React.useState(false);
+
+  const [confirmingDelete, setConfirmingDelete] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState('');
   const [name, setName] = React.useState(product.name);
   const [barcode, setBarcode] = React.useState(product.barcode ?? '');
   const [description, setDescription] = React.useState(product.description ?? '');
@@ -96,6 +100,20 @@ export default function ProductDrawer({
       setDetailsError(e instanceof Error ? e.message : 'Failed to update product');
     } finally {
       setSavingDetails(false);
+    }
+  }
+
+  async function deleteProduct() {
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await api(`/products/${product.id}`, { method: 'DELETE' }, token);
+      showToast(`"${product.name}" deleted.`);
+      onChanged();
+      onClose();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Failed to delete product');
+      setDeleting(false);
     }
   }
 
@@ -255,6 +273,32 @@ export default function ProductDrawer({
           <p style={{ color: 'var(--text-muted)' }}>No activity yet.</p>
         )}
       </div>
+
+      {canEdit && (
+        <div className="drawer-section danger-zone">
+          <h4>Danger Zone</h4>
+          {confirmingDelete ? (
+            <div className="danger-zone-confirm">
+              <p>
+                Delete <strong>{product.name}</strong>? This can't be undone.
+              </p>
+              {deleteError && <div className="error">{deleteError}</div>}
+              <div className="modal-actions">
+                <button className="danger" onClick={deleteProduct} disabled={deleting}>
+                  {deleting ? 'Deleting...' : 'Yes, delete product'}
+                </button>
+                <button onClick={() => setConfirmingDelete(false)} disabled={deleting}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="danger" onClick={() => setConfirmingDelete(true)}>
+              <Trash2 size={14} /> Delete Product
+            </button>
+          )}
+        </div>
+      )}
     </Drawer>
   );
 }
