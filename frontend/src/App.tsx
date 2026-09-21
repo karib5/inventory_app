@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import SuperAdminHome from './pages/SuperAdminHome';
 import CompanyDetail from './pages/CompanyDetail';
 import Workspace from './pages/Workspace';
+import ToastHost from './components/Toast';
 
 type SuperAdminView = { name: 'home' } | { name: 'company'; id: number };
 
@@ -34,7 +35,7 @@ function SuperAdminWorkspace({ token, user, onLogout }: { token: string; user: U
   );
 }
 
-const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please log in again.';
+const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please sign in again.';
 
 export default function App() {
   const [token, setToken] = React.useState(() => localStorage.getItem('inventory_token') || '');
@@ -73,13 +74,16 @@ export default function App() {
     setToken(newToken);
   }
 
-  if (!token || !user) {
-    return <Login onLoggedIn={handleLoggedIn} sessionMessage={sessionMessage} />;
-  }
-
-  if (user.role === 'super_admin') {
-    return <SuperAdminWorkspace token={token} user={user} onLogout={logout} />;
-  }
-
-  return <Workspace token={token} user={user} onLogout={logout} />;
+  return (
+    <>
+      {!token || !user ? (
+        <Login onLoggedIn={handleLoggedIn} sessionMessage={sessionMessage} />
+      ) : user.role === 'super_admin' ? (
+        <SuperAdminWorkspace token={token} user={user} onLogout={logout} />
+      ) : (
+        <Workspace token={token} user={user} onLogout={logout} />
+      )}
+      <ToastHost />
+    </>
+  );
 }

@@ -61,8 +61,8 @@ export default function Inventory({
     return (
       <section className="card">
         <div className="empty-state">
-          <h3>No products yet.</h3>
-          <p>Add your first product to start tracking inventory.</p>
+          <h3>No products yet</h3>
+          <p>Create your first product to start tracking inventory.</p>
           {canManageProducts && (
             <button className="primary" onClick={onAddProduct}>
               + Add Your First Product

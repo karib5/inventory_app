@@ -7,23 +7,29 @@ from app.models import Product, Role, User
 
 Base.metadata.create_all(bind=engine)
 
-# The bootstrap super_admin's email changed from admin@example.com to
-# admin@gmail.com. On a database that already has the old account, rename
-# that row in place (same id, role and password) instead of creating a
-# second admin.
-LEGACY_ADMIN_EMAIL = "admin@example.com"
+# The configured bootstrap admin email has changed before (a brief
+# admin@gmail.com experiment that was reverted back to admin@example.com).
+# If a database has a super_admin under any address this project has ever
+# used as the default, rename that row in place (same id, role, password)
+# to match the currently configured email - never create a second admin
+# just because the default changed again.
+KNOWN_PAST_ADMIN_EMAILS = ["admin@example.com", "admin@gmail.com"]
 
 with SessionLocal() as db:
     if db.scalar(select(User).where(User.email == settings.seed_admin_email)):
         print("Bootstrap admin already exists.")
     else:
         legacy = db.scalar(
-            select(User).where(User.email == LEGACY_ADMIN_EMAIL, User.role == Role.SUPER_ADMIN)
+            select(User).where(
+                User.email.in_(KNOWN_PAST_ADMIN_EMAILS),
+                User.role == Role.SUPER_ADMIN,
+            )
         )
-        if legacy and settings.seed_admin_email != LEGACY_ADMIN_EMAIL:
+        if legacy:
+            old_email = legacy.email
             legacy.email = settings.seed_admin_email
             db.commit()
-            print(f"Renamed existing super admin {LEGACY_ADMIN_EMAIL} -> {settings.seed_admin_email}")
+            print(f"Renamed existing super admin {old_email} -> {settings.seed_admin_email}")
         else:
             admin = User(
                 name="System Owner",

@@ -61,7 +61,8 @@ export default function Products({
       {products.length === 0 ? (
         <section className="card">
           <div className="empty-state">
-            <h3>No products yet.</h3>
+            <h3>No products yet</h3>
+            <p>Create your first product to start tracking inventory.</p>
             <button className="primary" onClick={onAddProduct}>
               + Add Your First Product
             </button>

@@ -6,6 +6,7 @@ import GlobalSearch from '../components/GlobalSearch';
 import StockActionModal, { StockActionMode } from '../components/StockActionModal';
 import AddProductModal from '../components/AddProductModal';
 import ProductDrawer from '../components/ProductDrawer';
+import { SkeletonRows, SkeletonStatCards } from '../components/Skeleton';
 import Dashboard from './Dashboard';
 import Inventory from './Inventory';
 import Products from './Products';
@@ -27,6 +28,7 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
   const [locations, setLocations] = React.useState<Location[]>([]);
   const [refreshKey, setRefreshKey] = React.useState(0);
   const [error, setError] = React.useState('');
+  const [initialLoading, setInitialLoading] = React.useState(true);
 
   const [modal, setModal] = React.useState<ModalState>({ kind: 'none' });
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
@@ -64,7 +66,9 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
   }
 
   React.useEffect(() => {
-    load().catch(e => setError(e.message));
+    load()
+      .catch(e => setError(e.message))
+      .finally(() => setInitialLoading(false));
   }, []);
 
   React.useEffect(() => {
@@ -114,6 +118,13 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
     >
       {error && <div className="error" style={{ marginBottom: 16 }}>{error}</div>}
 
+      {initialLoading ? (
+        <>
+          <SkeletonStatCards />
+          <SkeletonRows />
+        </>
+      ) : (
+        <>
       {page === 'dashboard' && (
         <Dashboard
           token={token}
@@ -159,6 +170,8 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
           onChanged={refresh}
           initialWarehouseId={jumpToWarehouseId}
         />
+      )}
+        </>
       )}
 
       {selectedProduct && (
