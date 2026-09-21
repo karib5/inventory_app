@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     secret_key: str
     access_token_expire_minutes: int = 30
     cors_origins: str = "http://localhost:5173"
+    # Optional regex for origins that change on every run (e.g. Cloudflare
+    # Quick Tunnel's random *.trycloudflare.com subdomain). Unused by the
+    # normal Vite-proxy setup (same-origin), kept as a fallback.
+    cors_origin_regex: str | None = None
     redis_url: str | None = None
     upload_dir: str = "uploads"
     seed_admin_email: str = "admin@example.com"
