@@ -1,6 +1,6 @@
 import React from 'react';
-import { Warehouse as WarehouseIcon } from 'lucide-react';
-import { api, resolveImageUrl, User, Warehouse } from '../api';
+import { ArchiveRestore, ChevronDown, ChevronUp, Warehouse as WarehouseIcon } from 'lucide-react';
+import { api, resolveImageUrl, unarchiveWarehouse, User, Warehouse } from '../api';
 import ImageUpload from '../components/ImageUpload';
 import { showToast } from '../components/Toast';
 
@@ -26,7 +26,35 @@ export default function Warehouses({
   const [togglingId, setTogglingId] = React.useState<number | null>(null);
   const [error, setError] = React.useState('');
 
+  const [archived, setArchived] = React.useState<Warehouse[]>([]);
+  const [showArchived, setShowArchived] = React.useState(false);
+  const [unarchivingId, setUnarchivingId] = React.useState<number | null>(null);
+
   const canManage = user.role === 'company_admin' || user.role === 'manager';
+  const canUnarchive = user.role === 'super_admin' || user.role === 'company_admin';
+
+  async function loadArchived() {
+    setArchived(await api('/warehouses?archived=true', {}, token));
+  }
+
+  React.useEffect(() => {
+    loadArchived().catch(() => setArchived([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleUnarchive(warehouse: Warehouse) {
+    setUnarchivingId(warehouse.id);
+    try {
+      await unarchiveWarehouse(warehouse.id, token);
+      showToast(`"${warehouse.name}" restored to Warehouses & Locations.`);
+      await loadArchived();
+      onChanged();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Failed to restore warehouse', 'error');
+    } finally {
+      setUnarchivingId(null);
+    }
+  }
 
   async function createWarehouse(event: React.FormEvent) {
     event.preventDefault();
@@ -144,6 +172,53 @@ export default function Warehouses({
         </div>
       ) : (
         <p>No warehouses yet.</p>
+      )}
+
+      {archived.length > 0 && (
+        <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+          <button className="ghost" onClick={() => setShowArchived(s => !s)} style={{ padding: '4px 0' }}>
+            {showArchived ? <ChevronUp size={14} /> : <ChevronDown size={14} />} Archived Warehouses ({archived.length})
+          </button>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+            These have inventory history that can't be deleted, so they were archived instead and kept out of the
+            list above. Restore one to make it manageable again.
+          </p>
+          {showArchived && (
+            <div className="warehouse-grid" style={{ marginTop: 12 }}>
+              {archived.map(w => (
+                <div className="warehouse-card" key={w.id} style={{ opacity: 0.85 }}>
+                  <div className="wh-image-placeholder">
+                    <WarehouseIcon size={34} />
+                  </div>
+                  <div className="wh-body">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{w.name}</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{w.code}</div>
+                      </div>
+                      <span className="badge badge-inactive">Archived</span>
+                    </div>
+                    <div className="wh-stats">
+                      <span>
+                        <strong>{w.product_count}</strong> products
+                      </span>
+                      <span>
+                        <strong>{w.total_units}</strong> units
+                      </span>
+                    </div>
+                    {canUnarchive && (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                        <button disabled={unarchivingId === w.id} onClick={() => handleUnarchive(w)}>
+                          <ArchiveRestore size={14} /> {unarchivingId === w.id ? 'Restoring...' : 'Unarchive'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </section>
   );

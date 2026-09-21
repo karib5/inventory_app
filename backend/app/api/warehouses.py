@@ -14,9 +14,19 @@ router = APIRouter(prefix="/warehouses", tags=["Warehouses"])
 
 
 @router.get("", response_model=list[WarehouseSummary])
-def list_warehouses(current_user: User = Depends(require_company_user), db: Session = Depends(get_db)):
+def list_warehouses(
+    current_user: User = Depends(require_company_user),
+    db: Session = Depends(get_db),
+    archived: bool = False,
+):
+    """archived=false (the default) is the normal "Warehouses & Locations"
+    list and never includes an archived warehouse - that's the whole point
+    of archiving one. archived=true is the separate Settings view that
+    shows only archived warehouses, so there's still a way back to them."""
     warehouses = db.scalars(
-        select(Warehouse).where(Warehouse.company_id == current_user.company_id).order_by(Warehouse.id)
+        select(Warehouse)
+        .where(Warehouse.company_id == current_user.company_id, Warehouse.is_archived.is_(archived))
+        .order_by(Warehouse.id)
     ).all()
 
     stats_rows = db.execute(
@@ -45,6 +55,7 @@ def list_warehouses(current_user: User = Depends(require_company_user), db: Sess
             address=w.address,
             image_url=w.image_url,
             is_active=w.is_active,
+            is_archived=w.is_archived,
             created_at=w.created_at,
             product_count=stats_by_warehouse.get(w.id, (0, 0))[0],
             total_units=stats_by_warehouse.get(w.id, (0, 0))[1],
@@ -130,6 +141,7 @@ def get_warehouse(
         address=warehouse.address,
         image_url=warehouse.image_url,
         is_active=warehouse.is_active,
+        is_archived=warehouse.is_archived,
         created_at=warehouse.created_at,
         location_count=location_count or 0,
         area_count=area_count or 0,
@@ -200,7 +212,10 @@ def confirm_delete_warehouse(
     anywhere in its area/rack/shelf tree is removed outright, along with
     its (empty) locations. One that does have history - any product still
     assigned there, or any past transaction at one of its locations - is
-    archived instead (is_active=False) so its history is never destroyed."""
+    archived instead so its history is never destroyed: is_archived=True
+    removes it from the normal Warehouses & Locations list entirely (not
+    just marks it Inactive, which stays visible there), until someone
+    explicitly unarchives it."""
     warehouse = db.scalar(select(Warehouse).where(Warehouse.id == warehouse_id))
     if not warehouse:
         raise HTTPException(404, "Warehouse not found")
@@ -244,11 +259,13 @@ def confirm_delete_warehouse(
     warehouse_name = warehouse.name
     if has_history:
         warehouse.is_active = False
+        warehouse.is_archived = True
         db.commit()
         return DeleteResult(
             result="archived",
-            message=f'"{warehouse_name}" has inventory history, so it was deactivated instead of deleted - its '
-            "structure and stock history are preserved, but it's no longer available for new activity.",
+            message=f'"{warehouse_name}" has inventory history, so it was archived instead of deleted - its '
+            "structure and stock history are preserved, and it's moved out of Warehouses & Locations into "
+            "Settings, where you can restore it any time.",
         )
 
     if all_location_ids:
@@ -256,3 +273,24 @@ def confirm_delete_warehouse(
     db.delete(warehouse)
     db.commit()
     return DeleteResult(result="deleted", message=f'"{warehouse_name}" was permanently deleted.')
+
+
+@router.post("/{warehouse_id}/unarchive", response_model=WarehouseRead)
+def unarchive_warehouse(
+    warehouse_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Restores an archived warehouse to normal circulation: it reappears
+    in Warehouses & Locations, active again. Same authorization as deleting
+    one in the first place - it's the direct inverse of that action."""
+    warehouse = db.scalar(select(Warehouse).where(Warehouse.id == warehouse_id))
+    if not warehouse:
+        raise HTTPException(404, "Warehouse not found")
+    authorize_company_delete(current_user, warehouse.company_id)
+
+    warehouse.is_archived = False
+    warehouse.is_active = True
+    db.commit()
+    db.refresh(warehouse)
+    return warehouse

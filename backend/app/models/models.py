@@ -69,7 +69,16 @@ class Warehouse(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # is_active is the plain on/off toggle a manager flips by hand (Activate/
+    # Deactivate) - unrelated to deletion. is_archived is a separate, only
+    # system-set flag: it's true only when Delete Warehouse found real
+    # history it couldn't destroy, so it archived the warehouse instead.
+    # Kept apart from is_active so "I turned this off for a while" and "this
+    # was archived because it couldn't be deleted" are never the same state
+    # - an archived warehouse is hidden from the main list entirely, an
+    # inactive-but-not-archived one still shows there, just marked Inactive.
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     company: Mapped[Company] = relationship()

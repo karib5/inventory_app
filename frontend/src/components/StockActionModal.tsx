@@ -105,6 +105,14 @@ export default function StockActionModal({
     ? stockByLocation.find(s => String(s.location_id) === locationId)?.quantity ?? 0
     : null;
 
+  // Feeds LocationPicker's per-node "N available" display wherever the
+  // picker is choosing where THIS product's existing stock is being drawn
+  // from (stock out, transfer's From, adjust) - not for a destination.
+  const productStockByLocation = React.useMemo(
+    () => new Map(stockByLocation.map(s => [s.location_id, s.quantity])),
+    [stockByLocation],
+  );
+
   function selectProduct(product: Product) {
     setSelectedProduct(product);
     setQuery('');
@@ -264,12 +272,18 @@ export default function StockActionModal({
                   setLocationId(l);
                 }}
                 required
+                productStockByLocation={productStockByLocation}
               />
               {locationId && <p style={{ marginTop: -10, color: 'var(--text-muted)' }}>Available here: {availableAtSource}</p>}
 
               <div className="field">
                 <label>Quantity</label>
-                <QuantityStepper value={quantity} onChange={setQuantity} quickSteps={[5, 10]} />
+                <QuantityStepper
+                  value={quantity}
+                  onChange={setQuantity}
+                  quickSteps={[5, 10]}
+                  max={availableAtSource ?? undefined}
+                />
               </div>
 
               <h4 style={{ marginBottom: 4 }}>To</h4>
@@ -311,6 +325,7 @@ export default function StockActionModal({
                   setLocationId(l);
                 }}
                 required
+                productStockByLocation={productStockByLocation}
               />
               {locationId && <p style={{ marginTop: -10, color: 'var(--text-muted)' }}>Available here: {availableAtSource}</p>}
               <div className="field">
@@ -322,7 +337,12 @@ export default function StockActionModal({
             <>
               <div className="field">
                 <label>Quantity</label>
-                <QuantityStepper value={quantity} onChange={setQuantity} quickSteps={[5, 10, 25]} />
+                <QuantityStepper
+                  value={quantity}
+                  onChange={setQuantity}
+                  quickSteps={[5, 10, 25]}
+                  max={mode === 'stock-out' ? availableAtSource ?? undefined : undefined}
+                />
               </div>
 
               <LocationPicker
@@ -335,6 +355,7 @@ export default function StockActionModal({
                   setLocationId(l);
                 }}
                 required
+                productStockByLocation={mode === 'stock-out' ? productStockByLocation : undefined}
               />
               {locationId && mode === 'stock-out' && (
                 <p style={{ marginTop: -10, color: 'var(--text-muted)' }}>Available here: {availableAtSource}</p>

@@ -32,6 +32,7 @@ export default function LocationPicker({
   onChange,
   onlyActive = true,
   required = false,
+  productStockByLocation,
 }: {
   warehouses: Warehouse[];
   locations: Location[];
@@ -40,6 +41,12 @@ export default function LocationPicker({
   onChange: (warehouseId: string, locationId: string) => void;
   onlyActive?: boolean;
   required?: boolean;
+  /** When set, every node shows how many units of THIS product sit there
+   * (itself plus everything inside it) instead of a child-location count -
+   * used wherever the picker is choosing where to move an already-selected
+   * product's stock (stock out, transfer), rather than a brand-new
+   * location with nothing in it yet. Keyed by location id -> quantity. */
+  productStockByLocation?: Map<number, number>;
 }) {
   const usableLocations = onlyActive ? locations.filter(l => l.is_active) : locations;
   const hasUnassigned = usableLocations.some(l => l.warehouse_id === null);
@@ -87,6 +94,15 @@ export default function LocationPicker({
     const newPath = path.slice(0, depth + 1);
     setPath(newPath);
     onChange(warehouseId, String(newPath[newPath.length - 1]));
+  }
+
+  function stockAt(nodeId: number): number {
+    if (!productStockByLocation) return 0;
+    let total = productStockByLocation.get(nodeId) ?? 0;
+    for (const child of locationsInScope.filter(l => l.parent_id === nodeId)) {
+      total += stockAt(child.id);
+    }
+    return total;
   }
 
   const pathNodes = path.map(id => usableLocations.find(l => l.id === id)).filter((l): l is Location => !!l);
@@ -158,6 +174,11 @@ export default function LocationPicker({
               <div className="location-node-grid">
                 {currentChildren.map(node => {
                   const childCount = locationsInScope.filter(l => l.parent_id === node.id).length;
+                  const meta = productStockByLocation
+                    ? `${stockAt(node.id)} available`
+                    : childCount > 0
+                      ? `${childCount} inside`
+                      : node.code;
                   return (
                     <button type="button" key={node.id} className="location-node" onClick={() => selectNode(node)}>
                       <span className="location-node-icon">
@@ -165,7 +186,7 @@ export default function LocationPicker({
                       </span>
                       <span className="location-node-body">
                         <strong>{node.name}</strong>
-                        <span className="location-node-meta">{childCount > 0 ? `${childCount} inside` : node.code}</span>
+                        <span className="location-node-meta">{meta}</span>
                       </span>
                     </button>
                   );

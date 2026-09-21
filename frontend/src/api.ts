@@ -45,6 +45,7 @@ export type Warehouse = {
   address: string | null;
   image_url: string | null;
   is_active: boolean;
+  is_archived: boolean;
   created_at: string;
   product_count: number;
   total_units: number;
@@ -96,6 +97,12 @@ export type LocationStock = {
   location_id: number;
   product_count: number;
   total_units: number;
+};
+
+export type TransferOutResult = {
+  product_count: number;
+  total_units: number;
+  message: string;
 };
 
 export type TransactionType = 'stock_in' | 'stock_out' | 'adjustment' | 'transfer_out' | 'transfer_in';
@@ -203,4 +210,20 @@ export async function confirmDeleteWarehouse(warehouseId: number, password: stri
 
 export async function confirmDeleteProduct(productId: number, password: string, token: string): Promise<DeleteResult> {
   return api(`/products/${productId}/confirm-delete`, { method: 'POST', body: JSON.stringify({ password }) }, token);
+}
+
+export async function unarchiveWarehouse(warehouseId: number, token: string): Promise<Warehouse> {
+  return api(`/warehouses/${warehouseId}/unarchive`, { method: 'POST' }, token);
+}
+
+export async function transferOutLocation(
+  locationId: number,
+  toLocationId: number,
+  token: string,
+): Promise<TransferOutResult> {
+  return api(
+    `/locations/${locationId}/transfer-out`,
+    { method: 'POST', body: JSON.stringify({ to_location_id: toLocationId }) },
+    token,
+  );
 }

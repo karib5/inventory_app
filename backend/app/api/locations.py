@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from app.api.deps import require_company_user
 from app.db.session import get_db
 from app.models import InventoryTransaction, Location, LocationType, Product, ProductStock, Role, TransactionType, User, Warehouse
-from app.schemas.location import LocationCreate, LocationRead, LocationUpdate
+from app.schemas.location import LocationCreate, LocationRead, LocationUpdate, TransferOutRequest, TransferOutResult
+from app.services.inventory import transfer_stock
 
 router = APIRouter(prefix="/locations", tags=["Locations"])
 
@@ -205,3 +206,65 @@ def update_location(
     db.commit()
     db.refresh(location)
     return location
+
+
+@router.post("/{location_id}/transfer-out", response_model=TransferOutResult)
+def transfer_out(
+    location_id: int,
+    payload: TransferOutRequest,
+    current_user: User = Depends(require_company_user),
+    db: Session = Depends(get_db),
+):
+    """Moves every product's stock out of this location (and anything
+    beneath it, e.g. a rack's shelves) into a single destination location -
+    the "transfer instead of clearing" alternative offered alongside
+    force-removing a location that still holds stock. Each product's move
+    is recorded as a normal, attributed transfer (matching a manual
+    Transfer Stock action exactly), never a silent reassignment."""
+    if current_user.role not in (Role.COMPANY_ADMIN, Role.MANAGER):
+        raise HTTPException(403, "Only company admins and managers can transfer stock")
+
+    location = db.scalar(
+        select(Location).where(Location.id == location_id, Location.company_id == current_user.company_id)
+    )
+    if not location:
+        raise HTTPException(404, "Location not found")
+
+    destination = db.scalar(
+        select(Location).where(Location.id == payload.to_location_id, Location.company_id == current_user.company_id)
+    )
+    if not destination or not destination.is_active:
+        raise HTTPException(400, "Destination location not found or inactive")
+
+    subtree_ids = _location_and_descendant_ids(db, location.id)
+    if payload.to_location_id in subtree_ids:
+        raise HTTPException(400, "Destination cannot be the location itself or something inside it")
+
+    stock_rows = db.scalars(
+        select(ProductStock).where(ProductStock.location_id.in_(subtree_ids), ProductStock.quantity > 0)
+    ).all()
+
+    product_ids: set[int] = set()
+    total_units = 0
+    for stock in stock_rows:
+        # transfer_stock mutates this same row's quantity down to 0 as a
+        # side effect, so the amount moved must be captured before calling it.
+        quantity = stock.quantity
+        transfer_stock(
+            db,
+            current_user.company_id,
+            stock.product_id,
+            stock.location_id,
+            payload.to_location_id,
+            quantity,
+            current_user,
+            note=f'Transferred out of "{location.name}" before it was removed',
+        )
+        product_ids.add(stock.product_id)
+        total_units += quantity
+
+    return TransferOutResult(
+        product_count=len(product_ids),
+        total_units=total_units,
+        message=f'Moved {total_units} unit{"s" if total_units != 1 else ""} to "{destination.name}".',
+    )
