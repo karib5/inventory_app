@@ -89,8 +89,15 @@ export default function AddProductModal({
     }
   }
 
+  // Stock with nowhere to live is meaningless - if they're putting units
+  // in right away, at least an area has to be picked (not just the
+  // warehouse itself). With 0 units there's nothing to place yet, so no
+  // location is required - they can add stock (and a location) later.
+  const missingLocation = quantity > 0 && !locationId;
+
   async function createProduct(event: React.FormEvent) {
     event.preventDefault();
+    if (missingLocation) return;
     await submitCreate(quantity, locationId);
   }
 
@@ -211,10 +218,16 @@ export default function AddProductModal({
               setWarehouseId(w);
               setLocationId(l);
             }}
+            required={quantity > 0}
           />
+          {missingLocation && (
+            <p className="location-empty-hint" style={{ marginTop: -10, color: 'var(--danger)' }}>
+              Pick at least an area to place these {quantity} units in.
+            </p>
+          )}
           {error && <div className="error">{error}</div>}
           <div className="modal-actions">
-            <button className="primary" disabled={busy}>
+            <button className="primary" disabled={busy || missingLocation}>
               {busy ? 'Creating...' : 'Create Product'}
             </button>
             <button type="button" onClick={() => setStep(1)}>
