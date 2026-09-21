@@ -1,6 +1,7 @@
 import React from 'react';
 import { Boxes, ChevronsLeft, ChevronsRight, LogOut, Menu, Search, X } from 'lucide-react';
 import { User } from '../api';
+import ThemeToggle from '../components/ThemeToggle';
 
 export type NavItem = { key: string; label: string; icon?: React.ReactNode };
 
@@ -78,6 +79,7 @@ export default function AppShell({
         </nav>
 
         <div className="sidebar-footer">
+          <ThemeToggle collapsed={collapsed} className="sidebar-collapse-toggle" />
           <button className="sidebar-collapse-toggle" onClick={toggleCollapsed} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
             {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
             {!collapsed && <span>Collapse</span>}

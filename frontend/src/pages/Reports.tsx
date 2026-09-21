@@ -96,7 +96,7 @@ export default function Reports({ token, products }: { token: string; products: 
               </tbody>
             </table>
           ) : (
-            <p style={{ color: '#687386' }}>No transactions match these filters.</p>
+            <p style={{ color: 'var(--text-muted)' }}>No transactions match these filters.</p>
           )}
         </section>
       )}
@@ -110,7 +110,7 @@ export default function Reports({ token, products }: { token: string; products: 
                   <th>Product</th>
                   <th>SKU</th>
                   <th>Current</th>
-                  <th>Minimum</th>
+                  <th>Alert Level</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -129,7 +129,7 @@ export default function Reports({ token, products }: { token: string; products: 
               </tbody>
             </table>
           ) : (
-            <p style={{ color: '#687386' }}>Nothing is low on stock.</p>
+            <p style={{ color: 'var(--text-muted)' }}>Nothing is low on stock.</p>
           )}
         </section>
       )}

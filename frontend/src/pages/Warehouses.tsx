@@ -2,6 +2,7 @@ import React from 'react';
 import { ArchiveRestore, ChevronDown, ChevronUp, Warehouse as WarehouseIcon } from 'lucide-react';
 import { api, resolveImageUrl, unarchiveWarehouse, User, Warehouse } from '../api';
 import ImageUpload from '../components/ImageUpload';
+import WarehouseCard from '../components/WarehouseCard';
 import { showToast } from '../components/Toast';
 
 export default function Warehouses({
@@ -125,50 +126,24 @@ export default function Warehouses({
       {error && <div className="error" style={{ marginBottom: 16 }}>{error}</div>}
       {warehouses.length ? (
         <div className="warehouse-grid">
-          {warehouses.map(w => {
-            const resolved = resolveImageUrl(w.image_url);
-            return (
-              <div className="warehouse-card" key={w.id}>
-                {resolved ? (
-                  <img src={resolved} alt={w.name} className="wh-image" />
-                ) : (
-                  <div className="wh-image-placeholder">
-                    <WarehouseIcon size={34} />
-                  </div>
-                )}
-                <div className="wh-body">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ fontWeight: 700 }}>{w.name}</div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{w.code}</div>
-                    </div>
-                    <span className={w.is_active ? 'badge badge-active' : 'badge badge-inactive'}>
-                      {w.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  {w.address && <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '6px 0 0' }}>{w.address}</p>}
-                  <div className="wh-stats">
-                    <span>
-                      <strong>{w.product_count}</strong> products
-                    </span>
-                    <span>
-                      <strong>{w.total_units}</strong> units
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-                    <button className="primary" onClick={() => onOpen(w.id)}>
-                      Open
-                    </button>
-                    {canManage && (
-                      <button disabled={togglingId === w.id} onClick={() => toggleActive(w)}>
-                        {togglingId === w.id ? 'Saving...' : w.is_active ? 'Deactivate' : 'Activate'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {warehouses.map(w => (
+            <WarehouseCard
+              key={w.id}
+              warehouse={w}
+              imageUrl={resolveImageUrl(w.image_url)}
+              statusLabel={w.is_active ? 'Active' : 'Inactive'}
+              statusClass={w.is_active ? 'badge-active' : 'badge-inactive'}
+            >
+              <button className="primary" onClick={() => onOpen(w.id)}>
+                Open
+              </button>
+              {canManage && (
+                <button disabled={togglingId === w.id} onClick={() => toggleActive(w)}>
+                  {togglingId === w.id ? 'Saving...' : w.is_active ? 'Deactivate' : 'Activate'}
+                </button>
+              )}
+            </WarehouseCard>
+          ))}
         </div>
       ) : (
         <p>No warehouses yet.</p>
@@ -186,35 +161,20 @@ export default function Warehouses({
           {showArchived && (
             <div className="warehouse-grid" style={{ marginTop: 12 }}>
               {archived.map(w => (
-                <div className="warehouse-card" key={w.id} style={{ opacity: 0.85 }}>
-                  <div className="wh-image-placeholder">
-                    <WarehouseIcon size={34} />
-                  </div>
-                  <div className="wh-body">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{w.name}</div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{w.code}</div>
-                      </div>
-                      <span className="badge badge-inactive">Archived</span>
-                    </div>
-                    <div className="wh-stats">
-                      <span>
-                        <strong>{w.product_count}</strong> products
-                      </span>
-                      <span>
-                        <strong>{w.total_units}</strong> units
-                      </span>
-                    </div>
-                    {canUnarchive && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-                        <button disabled={unarchivingId === w.id} onClick={() => handleUnarchive(w)}>
-                          <ArchiveRestore size={14} /> {unarchivingId === w.id ? 'Restoring...' : 'Unarchive'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <WarehouseCard
+                  key={w.id}
+                  warehouse={w}
+                  imageUrl={resolveImageUrl(w.image_url)}
+                  statusLabel="Archived"
+                  statusClass="badge-inactive"
+                  archived
+                >
+                  {canUnarchive && (
+                    <button disabled={unarchivingId === w.id} onClick={() => handleUnarchive(w)}>
+                      <ArchiveRestore size={14} /> {unarchivingId === w.id ? 'Restoring...' : 'Unarchive'}
+                    </button>
+                  )}
+                </WarehouseCard>
               ))}
             </div>
           )}

@@ -64,6 +64,14 @@ export default function Dashboard({
       </div>
 
       <div className="quick-actions">
+        {(user.role === 'company_admin' || user.role === 'manager') && (
+          <button onClick={onAddProduct}>
+            <span className="qa-icon">
+              <PackagePlus size={18} />
+            </span>
+            Add Product
+          </button>
+        )}
         <button onClick={() => onQuickAction('stock-in')}>
           <span className="qa-icon">
             <Plus size={18} />
@@ -82,14 +90,6 @@ export default function Dashboard({
           </span>
           Transfer Stock
         </button>
-        {(user.role === 'company_admin' || user.role === 'manager') && (
-          <button onClick={onAddProduct}>
-            <span className="qa-icon">
-              <PackagePlus size={18} />
-            </span>
-            Add Product
-          </button>
-        )}
         <button className="disabled" disabled title="Coming soon">
           <span className="qa-icon">
             <ScanLine size={18} />

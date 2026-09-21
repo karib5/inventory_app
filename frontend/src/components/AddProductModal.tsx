@@ -166,7 +166,7 @@ export default function AddProductModal({
           </div>
           <div className="field">
             <label>
-              Minimum Stock
+              Low Stock Alert Level
               <span className="help-tip">
                 <HelpCircle size={14} style={{ marginLeft: 4, color: 'var(--text-muted)' }} />
                 <span className="tooltip">

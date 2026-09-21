@@ -131,7 +131,7 @@ export default function ProductDrawer({
           </div>
           <div className="field">
             <label>
-              Minimum Stock
+              Low Stock Alert Level
               <span className="help-tip">
                 <HelpCircle size={14} style={{ marginLeft: 4, color: 'var(--text-muted)' }} />
                 <span className="tooltip">
@@ -210,7 +210,7 @@ export default function ProductDrawer({
           </span>
           <div>
             <strong>{product.minimum_stock_level}</strong>
-            <span>Minimum Stock</span>
+            <span>Low Stock Alert Level</span>
           </div>
         </div>
       </div>

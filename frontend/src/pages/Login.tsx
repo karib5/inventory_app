@@ -1,6 +1,7 @@
 import React from 'react';
 import { Boxes, Eye, EyeOff, Loader2, ShieldCheck, TrendingUp, Warehouse, Zap } from 'lucide-react';
 import { api } from '../api';
+import ThemeToggle from '../components/ThemeToggle';
 
 const FEATURES = [
   { icon: Zap, label: 'Real-time inventory' },
@@ -62,6 +63,7 @@ export default function Login({
       </section>
 
       <section className="auth-form-side">
+        <ThemeToggle collapsed className="theme-toggle-login" />
         <form className="auth-card" onSubmit={login} noValidate>
           <div className="auth-card-logo">
             <Boxes size={24} />
