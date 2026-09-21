@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_company_user
 from app.db.session import get_db
-from app.models import Location, Product, ProductStock, Role, User
+from app.models import InventoryTransaction, Location, Product, ProductStock, Role, User
 from app.schemas.product import ProductCreate, ProductRead, ProductStockLocationRead, ProductUpdate
 
 router = APIRouter(prefix="/products", tags=["Products"])
@@ -103,6 +103,37 @@ def update_product(
     db.commit()
     db.refresh(product)
     return product
+
+
+@router.delete("/{product_id}", status_code=204)
+def delete_product(
+    product_id: int,
+    current_user: User = Depends(require_company_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role not in (Role.COMPANY_ADMIN, Role.MANAGER):
+        raise HTTPException(403, "Only company admins and managers can delete products")
+
+    product = db.scalar(
+        select(Product).where(Product.id == product_id, Product.company_id == current_user.company_id)
+    )
+    if not product:
+        raise HTTPException(404, "Product not found")
+
+    has_history = db.scalar(
+        select(InventoryTransaction.id).where(InventoryTransaction.product_id == product_id).limit(1)
+    )
+    if has_history:
+        raise HTTPException(
+            409,
+            "This product has stock history (stock in/out, adjustments, or transfers) and can't be deleted, "
+            "to keep that history intact. Remove its stock down to 0 first if you no longer need it in your "
+            "catalog, or leave it as-is.",
+        )
+
+    db.execute(delete(ProductStock).where(ProductStock.product_id == product_id))
+    db.delete(product)
+    db.commit()
 
 
 @router.get("/{product_id}/stock", response_model=list[ProductStockLocationRead])
