@@ -2,6 +2,8 @@ import React from 'react';
 import { Search } from 'lucide-react';
 import { Location, Product, User, Warehouse } from '../api';
 import Thumbnail from '../components/Thumbnail';
+import StockStatusBadge from '../components/StockStatusBadge';
+import { getStockStatus } from '../utils';
 
 type StatusFilter = 'all' | 'in-stock' | 'low' | 'out';
 
@@ -38,12 +40,6 @@ export default function Inventory({
     return locations.find(l => l.id === product.location_id) ?? null;
   }
 
-  function status(product: Product): StatusFilter {
-    if (product.quantity === 0) return 'out';
-    if (product.quantity <= product.minimum_stock_level) return 'low';
-    return 'in-stock';
-  }
-
   const filtered = products.filter(p => {
     const q = query.trim().toLowerCase();
     if (q) {
@@ -53,7 +49,7 @@ export default function Inventory({
         (p.barcode ?? '').toLowerCase().includes(q);
       if (!matches) return false;
     }
-    if (statusFilter !== 'all' && status(p) !== statusFilter) return false;
+    if (statusFilter !== 'all' && getStockStatus(p) !== statusFilter) return false;
     if (warehouseFilter) {
       const loc = locationOf(p);
       if (!loc || String(loc.warehouse_id) !== warehouseFilter) return false;
@@ -160,13 +156,7 @@ export default function Inventory({
                     <td>{p.quantity} units</td>
                     <td>{loc ? `${loc.code} — ${loc.name}` : '—'}</td>
                     <td>
-                      {p.quantity === 0 ? (
-                        <span className="badge badge-inactive">Out of stock</span>
-                      ) : p.quantity <= p.minimum_stock_level ? (
-                        <span className="badge badge-warn">Low</span>
-                      ) : (
-                        <span className="badge badge-active">In stock</span>
-                      )}
+                      <StockStatusBadge product={p} />
                     </td>
                   </tr>
                 );

@@ -39,7 +39,7 @@ python seed.py
 ```
 
 Development credentials:
-- Email: `admin@example.com`
+- Email: `admin@gmail.com`
 - Password: `ChangeMe123!`
 
 Change this password before any real deployment.

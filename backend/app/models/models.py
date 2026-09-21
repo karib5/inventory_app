@@ -112,7 +112,7 @@ class Product(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     quantity: Mapped[int] = mapped_column(Integer, default=0)
-    minimum_stock_level: Mapped[int] = mapped_column(Integer, default=0)
+    minimum_stock_level: Mapped[int] = mapped_column(Integer, default=10)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()

@@ -2,7 +2,7 @@ import React from 'react';
 import { api } from '../api';
 
 export default function Login({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
-  const [email, setEmail] = React.useState('admin@example.com');
+  const [email, setEmail] = React.useState('admin@gmail.com');
   const [password, setPassword] = React.useState('ChangeMe123!');
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
@@ -38,7 +38,7 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (token: string) => v
         </label>
         {error && <div className="error">{error}</div>}
         <button disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}</button>
-        <small>Development login: admin@example.com / ChangeMe123!</small>
+        <small>Development login: admin@gmail.com / ChangeMe123!</small>
       </form>
     </main>
   );

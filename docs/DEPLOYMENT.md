@@ -95,7 +95,7 @@ as the database, **Create**, then copy its connection string for Part 4.
    | `DATABASE_URL` | the Internal Database URL from Part 2, pasted as-is |
    | `SECRET_KEY` | a random string — generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
    | `CORS_ORIGINS` | your Vercel URL, e.g. `https://your-app.vercel.app` — you won't have this until Part 6, so put a placeholder like `https://placeholder.vercel.app` now and fix it in Part 7 |
-   | `SEED_ADMIN_EMAIL` | an email you choose — don't leave this as `admin@example.com` for anything a supervisor can reach |
+   | `SEED_ADMIN_EMAIL` | an email you choose — don't leave this as the local dev default (`admin@gmail.com`) for anything a supervisor can reach |
    | `SEED_ADMIN_PASSWORD` | a real password you choose |
    | `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` (optional, this is already the default) |
    | `REDIS_URL` | the Key Value connection string from Part 3 (optional) |

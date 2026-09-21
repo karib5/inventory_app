@@ -1,11 +1,12 @@
 import React from 'react';
-import { ArrowLeftRight, Minus, Package, Pencil, Plus, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeftRight, HelpCircle, Minus, Package, Pencil, Plus, SlidersHorizontal } from 'lucide-react';
 import { api, Product, ProductStockLocation, Transaction } from '../api';
 import Drawer from './Drawer';
 import { StockActionMode } from './StockActionModal';
 import ActivityIcon from './ActivityIcon';
 import ImageUpload from './ImageUpload';
 import Thumbnail from './Thumbnail';
+import StockStatusBadge from './StockStatusBadge';
 import { timeAgo } from '../utils';
 
 export default function ProductDrawer({
@@ -32,6 +33,21 @@ export default function ProductDrawer({
   const [editing, setEditing] = React.useState(false);
   const [savingImage, setSavingImage] = React.useState(false);
 
+  const [editingDetails, setEditingDetails] = React.useState(false);
+  const [detailsError, setDetailsError] = React.useState('');
+  const [savingDetails, setSavingDetails] = React.useState(false);
+  const [name, setName] = React.useState(product.name);
+  const [barcode, setBarcode] = React.useState(product.barcode ?? '');
+  const [description, setDescription] = React.useState(product.description ?? '');
+  const [minStock, setMinStock] = React.useState(String(product.minimum_stock_level));
+
+  React.useEffect(() => {
+    setName(product.name);
+    setBarcode(product.barcode ?? '');
+    setDescription(product.description ?? '');
+    setMinStock(String(product.minimum_stock_level));
+  }, [product.id, product.name, product.barcode, product.description, product.minimum_stock_level]);
+
   React.useEffect(() => {
     api(`/products/${product.id}/stock`, {}, token)
       .then(setStockByLocation)
@@ -51,6 +67,77 @@ export default function ProductDrawer({
     }
   }
 
+  async function saveDetails(event: React.FormEvent) {
+    event.preventDefault();
+    setSavingDetails(true);
+    setDetailsError('');
+    try {
+      await api(
+        `/products/${product.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name,
+            barcode: barcode || null,
+            description: description || null,
+            minimum_stock_level: Number(minStock),
+          }),
+        },
+        token,
+      );
+      onChanged();
+      setEditingDetails(false);
+    } catch (e) {
+      setDetailsError(e instanceof Error ? e.message : 'Failed to update product');
+    } finally {
+      setSavingDetails(false);
+    }
+  }
+
+  if (editingDetails) {
+    return (
+      <Drawer onClose={onClose}>
+        <form onSubmit={saveDetails}>
+          <h2 style={{ marginTop: 0 }}>Edit Product Details</h2>
+          <div className="field">
+            <label>Product name</label>
+            <input value={name} onChange={e => setName(e.target.value)} required />
+          </div>
+          <div className="field">
+            <label>Barcode</label>
+            <input value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="Optional" />
+          </div>
+          <div className="field">
+            <label>Description</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+          </div>
+          <div className="field">
+            <label>
+              Minimum Stock
+              <span className="help-tip">
+                <HelpCircle size={14} style={{ marginLeft: 4, color: 'var(--text-muted)' }} />
+                <span className="tooltip">
+                  Below this number (but not zero) the product shows as "Low Stock" on the dashboard and
+                  inventory list. Zero units always shows as "Out of Stock" regardless of this value.
+                </span>
+              </span>
+            </label>
+            <input type="number" min={0} value={minStock} onChange={e => setMinStock(e.target.value)} required />
+          </div>
+          {detailsError && <div className="error">{detailsError}</div>}
+          <div className="modal-actions">
+            <button className="primary" disabled={savingDetails}>
+              {savingDetails ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button type="button" onClick={() => setEditingDetails(false)} disabled={savingDetails}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </Drawer>
+    );
+  }
+
   return (
     <Drawer onClose={onClose}>
       {editing ? (
@@ -65,15 +152,23 @@ export default function ProductDrawer({
         <div className="thumb-row" style={{ marginBottom: 8 }}>
           <Thumbnail src={product.image_url} alt={product.name} size="lg" />
           <div style={{ flex: 1 }}>
-            <h2 style={{ margin: 0 }}>{product.name}</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+              <h2 style={{ margin: 0 }}>{product.name}</h2>
+              <StockStatusBadge product={product} />
+            </div>
             <p style={{ color: 'var(--text-muted)', margin: '4px 0 0' }}>
               SKU {product.sku}
               {product.barcode ? ` · Barcode ${product.barcode}` : ''}
             </p>
             {canEdit && (
-              <button className="ghost" style={{ padding: '2px 0', fontSize: 12 }} onClick={() => setEditing(true)}>
-                <Pencil size={12} /> Edit image
-              </button>
+              <div style={{ display: 'flex', gap: 14, marginTop: 2 }}>
+                <button className="ghost" style={{ padding: '2px 0', fontSize: 12 }} onClick={() => setEditing(true)}>
+                  <Pencil size={12} /> Edit image
+                </button>
+                <button className="ghost" style={{ padding: '2px 0', fontSize: 12 }} onClick={() => setEditingDetails(true)}>
+                  <Pencil size={12} /> Edit details
+                </button>
+              </div>
             )}
           </div>
         </div>

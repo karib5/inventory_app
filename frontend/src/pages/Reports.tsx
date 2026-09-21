@@ -1,13 +1,18 @@
 import React from 'react';
 import { api, Product, Transaction, TransactionType } from '../api';
+import StockStatusBadge from '../components/StockStatusBadge';
+import { getStockStatus } from '../utils';
 
 export default function Reports({ token, products }: { token: string; products: Product[] }) {
   const [tab, setTab] = React.useState<'movement' | 'low-stock'>('movement');
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
-  const [lowStock, setLowStock] = React.useState<Product[]>([]);
   const [productFilter, setProductFilter] = React.useState('');
   const [typeFilter, setTypeFilter] = React.useState<TransactionType | ''>('');
   const [error, setError] = React.useState('');
+
+  // Same source and logic as everywhere else (Dashboard, Inventory,
+  // Products) - a product below its own threshold but not at zero.
+  const lowStock = products.filter(p => getStockStatus(p) === 'low');
 
   async function loadTransactions() {
     const params = new URLSearchParams();
@@ -19,12 +24,6 @@ export default function Reports({ token, products }: { token: string; products: 
   React.useEffect(() => {
     loadTransactions().catch(e => setError(e.message));
   }, [productFilter, typeFilter]);
-
-  React.useEffect(() => {
-    api('/inventory/low-stock', {}, token)
-      .then(setLowStock)
-      .catch(e => setError(e.message));
-  }, []);
 
   return (
     <>
@@ -112,6 +111,7 @@ export default function Reports({ token, products }: { token: string; products: 
                   <th>SKU</th>
                   <th>Current</th>
                   <th>Minimum</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -121,6 +121,9 @@ export default function Reports({ token, products }: { token: string; products: 
                     <td>{p.sku}</td>
                     <td>{p.quantity}</td>
                     <td>{p.minimum_stock_level}</td>
+                    <td>
+                      <StockStatusBadge product={p} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

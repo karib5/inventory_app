@@ -36,7 +36,7 @@ export default function AddProductModal({
   const [barcode, setBarcode] = React.useState('');
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [description, setDescription] = React.useState('');
-  const [minStock, setMinStock] = React.useState('0');
+  const [minStock, setMinStock] = React.useState('10');
 
   const [quantity, setQuantity] = React.useState(0);
   const [warehouseId, setWarehouseId] = React.useState('');
@@ -60,7 +60,7 @@ export default function AddProductModal({
             barcode: barcode || null,
             description: description || null,
             image_url: imageUrl,
-            minimum_stock_level: Number(minStock) || 0,
+            minimum_stock_level: Number(minStock) || 10,
             quantity: qty,
             location_id: locId ? Number(locId) : null,
           }),
@@ -101,7 +101,7 @@ export default function AddProductModal({
     setSku('');
     setBarcode('');
     setDescription('');
-    setMinStock('0');
+    setMinStock('10');
     setQuantity(0);
     setWarehouseId('');
     setLocationId('');
@@ -157,21 +157,29 @@ export default function AddProductModal({
             </label>
             <input value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="Optional" />
           </div>
+          <div className="field">
+            <label>
+              Minimum Stock
+              <span className="help-tip">
+                <HelpCircle size={14} style={{ marginLeft: 4, color: 'var(--text-muted)' }} />
+                <span className="tooltip">
+                  Once stock falls below this number (but isn't zero), the product shows as "Low Stock" on the
+                  dashboard and inventory list. Zero units always shows as "Out of Stock" instead. Defaults to
+                  10 — change it to whatever makes sense for this product, and you can edit it later too.
+                </span>
+              </span>
+            </label>
+            <input type="number" min={0} value={minStock} onChange={e => setMinStock(e.target.value)} required />
+          </div>
           {!showAdvanced ? (
             <button type="button" className="ghost" onClick={() => setShowAdvanced(true)}>
               Advanced options
             </button>
           ) : (
-            <>
-              <div className="field">
-                <label>Description (optional)</label>
-                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
-              </div>
-              <div className="field">
-                <label>Minimum stock level (for low-stock alerts)</label>
-                <input type="number" min={0} value={minStock} onChange={e => setMinStock(e.target.value)} />
-              </div>
-            </>
+            <div className="field">
+              <label>Description (optional)</label>
+              <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+            </div>
           )}
           {error && <div className="error">{error}</div>}
           <div className="modal-actions">

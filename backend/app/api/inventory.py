@@ -133,11 +133,17 @@ def low_stock_products(
     current_user: User = Depends(require_company_user),
     db: Session = Depends(get_db),
 ):
+    """Strictly "low stock": some units left, but below the product's own
+    threshold. Zero units is "out of stock", a different state - it must not
+    show up here (a bare quantity <= minimum_stock_level check would also
+    have wrongly counted quantity == minimum_stock_level as low instead of
+    in stock)."""
     return db.scalars(
         select(Product)
         .where(
             Product.company_id == current_user.company_id,
-            Product.quantity <= Product.minimum_stock_level,
+            Product.quantity > 0,
+            Product.quantity < Product.minimum_stock_level,
         )
         .order_by(Product.id)
     ).all()

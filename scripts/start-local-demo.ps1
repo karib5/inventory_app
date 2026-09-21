@@ -232,7 +232,7 @@ if ($frontendPort) {
 Write-Step "Running smoke tests"
 
 # Local login test (credentials come from backend\.env, never printed)
-$seedEmail = 'admin@example.com'
+$seedEmail = 'admin@gmail.com'
 $seedPassword = 'ChangeMe123!'
 if (Test-Path $backendEnv) {
     foreach ($line in (Get-Content $backendEnv)) {

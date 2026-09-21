@@ -12,7 +12,7 @@ import {
 import { api, Product, Transaction, User } from '../api';
 import { StockActionMode } from '../components/StockActionModal';
 import ActivityIcon from '../components/ActivityIcon';
-import { timeAgo } from '../utils';
+import { getStockStatus, timeAgo } from '../utils';
 
 function greeting() {
   const hour = new Date().getHours();
@@ -38,13 +38,9 @@ export default function Dashboard({
   onAddProduct: () => void;
   onViewFiltered: (filter: 'low' | 'out') => void;
 }) {
-  const [lowStock, setLowStock] = React.useState<Product[]>([]);
   const [recent, setRecent] = React.useState<Transaction[]>([]);
 
   React.useEffect(() => {
-    api('/inventory/low-stock', {}, token)
-      .then(setLowStock)
-      .catch(() => setLowStock([]));
     api('/inventory/transactions?limit=6', {}, token)
       .then(setRecent)
       .catch(() => setRecent([]));
@@ -52,8 +48,11 @@ export default function Dashboard({
 
   const totalProducts = products.length;
   const totalStock = products.reduce((sum, p) => sum + p.quantity, 0);
-  const outOfStock = products.filter(p => p.quantity === 0).length;
-  const lowOnly = lowStock.filter(p => p.quantity > 0).length;
+  // Derived from the same products list Inventory/Products use, via the
+  // shared getStockStatus() - a product can never land in both counts.
+  const lowStockCount = products.filter(p => getStockStatus(p) === 'low').length;
+  const outOfStock = products.filter(p => getStockStatus(p) === 'out').length;
+  const needsAttention = lowStockCount + outOfStock;
 
   return (
     <>
@@ -125,7 +124,7 @@ export default function Dashboard({
               <PackageX size={19} />
             </span>
             <div>
-              <strong>{lowStock.length}</strong>
+              <strong>{lowStockCount}</strong>
               <span>Low Stock</span>
             </div>
           </div>
@@ -143,9 +142,9 @@ export default function Dashboard({
 
       <section className="card">
         <h2>Needs Attention</h2>
-        {lowStock.length ? (
+        {needsAttention ? (
           <div className="attention-list">
-            {lowOnly > 0 && (
+            {lowStockCount > 0 && (
               <div className="attention-row" onClick={() => onViewFiltered('low')}>
                 <div className="att-left">
                   <span className="att-icon" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
@@ -153,7 +152,7 @@ export default function Dashboard({
                   </span>
                   <span>Low Stock</span>
                 </div>
-                <span className="badge badge-warn">{lowOnly} products</span>
+                <span className="badge badge-warn">{lowStockCount} products</span>
               </div>
             )}
             {outOfStock > 0 && (
