@@ -81,23 +81,31 @@ def get_warehouse(
         raise HTTPException(404, "Warehouse not found")
 
     location_count = db.scalar(
-        select(func.count()).select_from(Location).where(Location.warehouse_id == warehouse_id)
+        select(func.count())
+        .select_from(Location)
+        .where(Location.warehouse_id == warehouse_id, Location.is_active.is_(True))
     )
     # "Area" covers both historical location_type values (zone/aisle) that
     # existing data may already be using for this level of the hierarchy.
     area_count = db.scalar(
         select(func.count()).select_from(Location).where(
-            Location.warehouse_id == warehouse_id, Location.location_type.in_([LocationType.ZONE, LocationType.AISLE])
+            Location.warehouse_id == warehouse_id,
+            Location.location_type.in_([LocationType.ZONE, LocationType.AISLE]),
+            Location.is_active.is_(True),
         )
     )
     rack_count = db.scalar(
         select(func.count()).select_from(Location).where(
-            Location.warehouse_id == warehouse_id, Location.location_type == LocationType.RACK
+            Location.warehouse_id == warehouse_id,
+            Location.location_type == LocationType.RACK,
+            Location.is_active.is_(True),
         )
     )
     shelf_count = db.scalar(
         select(func.count()).select_from(Location).where(
-            Location.warehouse_id == warehouse_id, Location.location_type == LocationType.SHELF
+            Location.warehouse_id == warehouse_id,
+            Location.location_type == LocationType.SHELF,
+            Location.is_active.is_(True),
         )
     )
     product_count, total_units = db.execute(
