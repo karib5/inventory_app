@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronDown, ChevronUp, Grid3x3, List, Search } from 'lucide-react';
-import { Product, User, Warehouse } from '../api';
+import { Location, Product, User, Warehouse } from '../api';
 import Thumbnail from '../components/Thumbnail';
 import StockStatusBadge from '../components/StockStatusBadge';
 import { getStockStatus } from '../utils';
@@ -10,6 +10,22 @@ type ViewMode = 'list' | 'grid';
 const VIEW_STORAGE_KEY = 'inventory_view';
 
 const VISIBLE_LOCATIONS = 2;
+
+/** A location plus every location nested inside it (a rack's shelves, or
+ * an area's racks and their shelves) - lets the Area/Rack filters match a
+ * product whose stock sits anywhere in that subtree, not just directly on
+ * the exact location picked. */
+function subtreeIds(locations: Location[], rootId: number): number[] {
+  const ids = [rootId];
+  let frontier = [rootId];
+  while (frontier.length) {
+    const children = locations.filter(l => frontier.includes(l.parent_id ?? -1)).map(l => l.id);
+    if (!children.length) break;
+    ids.push(...children);
+    frontier = children;
+  }
+  return ids;
+}
 
 function LocationsCell({ product }: { product: Product }) {
   const [expanded, setExpanded] = React.useState(false);
@@ -56,6 +72,7 @@ export default function Inventory({
   user,
   products,
   warehouses,
+  locations,
   initialStatusFilter,
   onSelectProduct,
   onAddProduct,
@@ -64,6 +81,7 @@ export default function Inventory({
   user: User;
   products: Product[];
   warehouses: Warehouse[];
+  locations: Location[];
   initialStatusFilter?: StatusFilter | null;
   onSelectProduct: (product: Product) => void;
   onAddProduct: () => void;
@@ -72,12 +90,14 @@ export default function Inventory({
   const canManageProducts = user.role === 'company_admin' || user.role === 'manager';
   const [query, setQuery] = React.useState('');
   const [warehouseFilter, setWarehouseFilter] = React.useState('');
+  const [areaFilter, setAreaFilter] = React.useState('');
+  const [rackFilter, setRackFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>(initialStatusFilter ?? 'all');
   const [view, setView] = React.useState<ViewMode>(() => {
     try {
-      return (localStorage.getItem(VIEW_STORAGE_KEY) as ViewMode) || 'list';
+      return (localStorage.getItem(VIEW_STORAGE_KEY) as ViewMode) || 'grid';
     } catch {
-      return 'list';
+      return 'grid';
     }
   });
 
@@ -94,6 +114,37 @@ export default function Inventory({
     if (initialStatusFilter) setStatusFilter(initialStatusFilter);
   }, [initialStatusFilter]);
 
+  function changeWarehouseFilter(next: string) {
+    setWarehouseFilter(next);
+    setAreaFilter('');
+    setRackFilter('');
+  }
+
+  function changeAreaFilter(next: string) {
+    setAreaFilter(next);
+    setRackFilter('');
+  }
+
+  // Areas/racks only ever make sense once a warehouse is picked - narrowed
+  // to that warehouse, and racks further narrowed to the chosen area once
+  // one is picked too.
+  const areaOptions = warehouseFilter
+    ? locations
+        .filter(l => l.is_active && l.location_type === 'zone' && String(l.warehouse_id) === warehouseFilter)
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : [];
+  const rackOptions = warehouseFilter
+    ? locations
+        .filter(
+          l =>
+            l.is_active &&
+            l.location_type === 'rack' &&
+            String(l.warehouse_id) === warehouseFilter &&
+            (!areaFilter || String(l.parent_id) === areaFilter),
+        )
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : [];
+
   const filtered = products.filter(p => {
     const q = query.trim().toLowerCase();
     if (q) {
@@ -106,6 +157,13 @@ export default function Inventory({
     if (statusFilter !== 'all' && getStockStatus(p) !== statusFilter) return false;
     if (warehouseFilter && !p.stock_locations.some(loc => String(loc.warehouse_id) === warehouseFilter)) {
       return false;
+    }
+    if (rackFilter) {
+      const ids = new Set(subtreeIds(locations, Number(rackFilter)));
+      if (!p.stock_locations.some(loc => ids.has(loc.location_id))) return false;
+    } else if (areaFilter) {
+      const ids = new Set(subtreeIds(locations, Number(areaFilter)));
+      if (!p.stock_locations.some(loc => ids.has(loc.location_id))) return false;
     }
     return true;
   });
@@ -157,7 +215,7 @@ export default function Inventory({
       </div>
 
       <div className="inline-form" style={{ marginBottom: 16 }}>
-        <select value={warehouseFilter} onChange={e => setWarehouseFilter(e.target.value)}>
+        <select value={warehouseFilter} onChange={e => changeWarehouseFilter(e.target.value)}>
           <option value="">All warehouses</option>
           {warehouses.map(w => (
             <option key={w.id} value={w.id}>
@@ -165,6 +223,26 @@ export default function Inventory({
             </option>
           ))}
         </select>
+        {warehouseFilter && (
+          <>
+            <select value={areaFilter} onChange={e => changeAreaFilter(e.target.value)}>
+              <option value="">All areas</option>
+              {areaOptions.map(a => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+            <select value={rackFilter} onChange={e => setRackFilter(e.target.value)}>
+              <option value="">All racks</option>
+              {rackOptions.map(r => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as StatusFilter)}>
           <option value="all">All statuses</option>
           <option value="in-stock">In stock</option>

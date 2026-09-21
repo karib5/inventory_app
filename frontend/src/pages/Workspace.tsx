@@ -144,6 +144,7 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
           user={user}
           products={products}
           warehouses={warehouses}
+          locations={locations}
           initialStatusFilter={inventoryStatusFilter}
           onSelectProduct={setSelectedProduct}
           onAddProduct={() => openAddProduct()}
