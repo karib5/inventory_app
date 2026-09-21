@@ -1,5 +1,16 @@
 import React from 'react';
-import { Boxes, Eye, EyeOff, Loader2, ShieldCheck, TrendingUp, Warehouse, Zap } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  Boxes,
+  Eye,
+  EyeOff,
+  Loader2,
+  PackagePlus,
+  ShieldCheck,
+  TrendingUp,
+  Warehouse,
+  Zap,
+} from 'lucide-react';
 import { api } from '../api';
 import ThemeToggle from '../components/ThemeToggle';
 
@@ -8,6 +19,8 @@ const FEATURES = [
   { icon: Warehouse, label: 'Warehouse management' },
   { icon: TrendingUp, label: 'Stock tracking' },
 ];
+
+const PREVIEW_BARS = [42, 68, 50, 82, 60, 94, 74];
 
 export default function Login({
   onLoggedIn,
@@ -59,6 +72,50 @@ export default function Login({
               </li>
             ))}
           </ul>
+
+          <div className="auth-preview-card">
+            <div className="auth-preview-header">
+              <span className="auth-preview-dot" />
+              <span className="auth-preview-dot" />
+              <span className="auth-preview-dot" />
+              <span className="auth-preview-title">Warehouse Overview</span>
+            </div>
+            <div className="auth-preview-stats">
+              <div>
+                <strong>1,284</strong>
+                <span>Products</span>
+              </div>
+              <div>
+                <strong>12</strong>
+                <span>Warehouses</span>
+              </div>
+              <div>
+                <strong>99.2%</strong>
+                <span>Order Accuracy</span>
+              </div>
+            </div>
+            <div className="auth-preview-chart">
+              {PREVIEW_BARS.map((h, i) => (
+                <span key={i} style={{ height: `${h}%` }} />
+              ))}
+            </div>
+            <div className="auth-preview-rows">
+              <div className="auth-preview-row">
+                <span className="auth-preview-row-icon in">
+                  <PackagePlus size={11} />
+                </span>
+                <span>Stock added — Blue Shirt</span>
+                <strong>+40</strong>
+              </div>
+              <div className="auth-preview-row">
+                <span className="auth-preview-row-icon out">
+                  <ArrowLeftRight size={11} />
+                </span>
+                <span>Transfer — Rack 3 → Rack 1</span>
+                <strong>18</strong>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -130,6 +187,9 @@ export default function Login({
             )}
           </button>
         </form>
+        <p className="auth-form-footer">
+          <ShieldCheck size={13} /> Your data is encrypted and access-controlled.
+        </p>
       </section>
     </main>
   );

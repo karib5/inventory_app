@@ -18,6 +18,7 @@
   --warning:#b45309;
   --warning-soft:#fef3d9;
   --danger:#b91c1c;
+  --danger-rgb:185,28,28;
   --danger-soft:#fdeaea;
   --text:#1c2536;
   --text-muted:#64748b;
@@ -50,6 +51,7 @@
   --warning:#fbbf24;
   --warning-soft:#3a2c11;
   --danger:#f87171;
+  --danger-rgb:248,113,113;
   --danger-soft:#3a1a1a;
   --text:#e7ebf3;
   --text-muted:#93a0b8;
@@ -113,9 +115,32 @@ button.icon-btn{padding:9px;border-radius:8px}
 .auth-features li{display:flex;align-items:center;gap:12px;color:#dbe2ef;font-size:14px;font-weight:600}
 .auth-feature-icon{width:30px;height:30px;border-radius:8px;background:#ffffff14;color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
-.auth-form-side{position:relative;display:flex;align-items:center;justify-content:center;padding:40px 24px;background:var(--bg)}
-.theme-toggle-login{position:absolute;top:20px;right:20px;padding:9px;border-radius:8px}
-.auth-card{width:min(400px,100%);background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:36px 32px}
+/* A small "product screenshot" mockup - fills the brand panel's empty lower
+   half with something that actually looks like the app, giving the login
+   page a real management-software feel instead of just a logo and a list.
+   Fixed light-on-glass colors, not theme tokens: it always sits on the
+   permanently-dark brand panel, in both app themes. */
+.auth-preview-card{margin-top:32px;max-width:380px;background:#ffffff0f;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid #ffffff22;border-radius:16px;padding:20px;box-shadow:0 24px 60px #00000045}
+.auth-preview-header{display:flex;align-items:center;gap:5px;margin-bottom:18px}
+.auth-preview-dot{width:7px;height:7px;border-radius:50%;background:#ffffff30}
+.auth-preview-title{margin-left:8px;font-size:12px;font-weight:700;color:#c7d1e3;letter-spacing:.02em}
+.auth-preview-stats{display:flex;gap:22px;margin-bottom:18px}
+.auth-preview-stats strong{display:block;font-size:20px;color:#fff;font-weight:800;line-height:1.1}
+.auth-preview-stats span{display:block;font-size:11px;color:#93a0c2;margin-top:3px}
+.auth-preview-chart{display:flex;align-items:flex-end;gap:6px;height:56px;margin-bottom:18px}
+.auth-preview-chart span{flex:1;background:linear-gradient(180deg,#5b9cffcc,#5b9cff33);border-radius:3px 3px 0 0}
+.auth-preview-rows{display:flex;flex-direction:column;gap:11px;border-top:1px solid #ffffff18;padding-top:14px}
+.auth-preview-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#dbe2f3}
+.auth-preview-row strong{margin-left:auto;color:#fff;font-weight:700}
+.auth-preview-row-icon{width:20px;height:20px;border-radius:6px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center}
+.auth-preview-row-icon.in{background:#4ade8030;color:#86efac}
+.auth-preview-row-icon.out{background:#5b9cff30;color:#93c5fd}
+@media(max-width:900px){.auth-preview-card{display:none}}
+
+.auth-form-side{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;background:var(--bg);overflow:hidden}
+.auth-form-side::before{content:'';position:absolute;width:520px;height:520px;background:radial-gradient(circle,var(--accent-soft) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);opacity:.7;pointer-events:none}
+.theme-toggle-login{position:absolute;top:20px;right:20px;padding:9px;border-radius:8px;z-index:1}
+.auth-card{position:relative;z-index:1;width:min(400px,100%);background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:36px 32px}
 .auth-card-logo{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
 .auth-card h2{margin:0 0 4px;font-size:22px}
 .auth-subtitle{color:var(--text-muted);margin:0 0 22px;font-size:14px}
@@ -129,6 +154,7 @@ button.icon-btn{padding:9px;border-radius:8px}
 .auth-submit{width:100%;justify-content:center;margin-top:4px;padding:12px 16px}
 .auth-card .error{margin-bottom:16px}
 .auth-card .session-banner{margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.auth-form-footer{position:relative;z-index:1;display:flex;align-items:center;gap:6px;margin-top:20px;color:var(--text-muted);font-size:12.5px}
 
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{animation:spin .8s linear infinite}
@@ -289,6 +315,20 @@ tr.clickable:hover{background:var(--surface-hover)}
 .danger-confirm-warning svg{flex-shrink:0;margin-top:1px}
 .danger-confirm-warning p{margin:0;color:var(--text);font-size:13.5px;line-height:1.5}
 .danger-confirm-target{font-weight:700 !important;margin-bottom:4px !important;color:var(--text)}
+
+/* The "transfer instead of clearing" option inside the remove-location
+   confirm dialog was easy to miss as a plain ghost button (transparent
+   background, no border) in both themes - give it a real outline, filled
+   background, and a pulsing red ring so it visibly reads as an actionable
+   button, not label text. */
+button.ghost.transfer-first-btn{background:var(--danger-soft);border:1.5px solid var(--danger);color:var(--danger);font-weight:700;animation:transfer-btn-pulse 1.6s ease-out infinite}
+button.ghost.transfer-first-btn:hover{background:var(--danger-soft);filter:brightness(0.95);animation-play-state:paused}
+@keyframes transfer-btn-pulse{
+  0%{box-shadow:0 0 0 0 rgba(var(--danger-rgb),.5)}
+  70%{box-shadow:0 0 0 8px rgba(var(--danger-rgb),0)}
+  100%{box-shadow:0 0 0 0 rgba(var(--danger-rgb),0)}
+}
+@media(prefers-reduced-motion:reduce){.transfer-first-btn{animation:none}}
 .location-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)}
 .storage-row{align-items:center;gap:10px}
 .storage-path{display:flex;align-items:center;flex-wrap:wrap;gap:4px;color:var(--text);font-size:13.5px}
@@ -339,26 +379,6 @@ tr.clickable:hover{background:var(--surface-hover)}
 .tile .tile-icon{width:36px;height:36px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center}
 .tile .tile-title{font-weight:700}
 .tile .tile-desc{color:var(--text-muted);font-size:13px}
-
-/* ---------- view toggle (grid / list) ---------- */
-.view-toggle{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:3px}
-.view-toggle button{background:transparent;border-color:transparent;padding:7px 12px;font-size:13px;color:var(--text-muted)}
-.view-toggle button:hover{background:var(--surface-hover)}
-.view-toggle button.active{background:var(--card);color:var(--text);box-shadow:0 1px 2px #0f1b2d1a}
-
-/* ---------- product cards (grid view) ---------- */
-.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
-.product-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:border-color .12s,transform .12s}
-.product-card:hover{border-color:var(--accent);transform:translateY(-2px)}
-.product-card-image{display:flex;align-items:center;justify-content:center;padding:18px;background:linear-gradient(135deg,var(--surface-gradient-a),var(--surface-gradient-b))}
-.product-card-image .thumb-lg{width:84px;height:84px}
-.product-card-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px}
-.product-card-title{font-weight:700;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.product-card-sku{color:var(--text-muted);font-size:12.5px}
-.product-card-stats{display:flex;gap:18px;margin:2px 0 4px}
-.product-card-stats strong{display:block;font-size:16px;line-height:1.2}
-.product-card-stats span{color:var(--text-muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
-.product-card .badge{align-self:flex-start}
 
 /* ---------- warehouse cards ----------
    Full-bleed photo by default; name/stats/actions live in a bottom sheet

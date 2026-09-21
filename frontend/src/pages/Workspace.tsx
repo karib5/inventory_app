@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Package, Settings as SettingsIcon, ClipboardList, BarChart3, Boxes } from 'lucide-react';
+import { LayoutDashboard, Settings as SettingsIcon, ClipboardList, BarChart3, Boxes } from 'lucide-react';
 import { api, Location, Product, User, Warehouse } from '../api';
 import AppShell, { NavItem } from '../layout/AppShell';
 import GlobalSearch from '../components/GlobalSearch';
@@ -9,12 +9,11 @@ import ProductDrawer from '../components/ProductDrawer';
 import { SkeletonRows, SkeletonStatCards } from '../components/Skeleton';
 import Dashboard from './Dashboard';
 import Inventory from './Inventory';
-import Products from './Products';
 import Operations from './Operations';
 import Reports from './Reports';
 import Settings from './Settings';
 
-type PageKey = 'dashboard' | 'inventory' | 'products' | 'operations' | 'reports' | 'settings';
+type PageKey = 'dashboard' | 'inventory' | 'operations' | 'reports' | 'settings';
 
 type ModalState =
   | { kind: 'none' }
@@ -43,7 +42,6 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
     ? [
         { key: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
         { key: 'inventory', label: 'Inventory', icon: <Boxes size={16} /> },
-        { key: 'products', label: 'Products', icon: <Package size={16} /> },
         { key: 'operations', label: 'Operations', icon: <ClipboardList size={16} /> },
         { key: 'reports', label: 'Reports', icon: <BarChart3 size={16} /> },
         { key: 'settings', label: 'Settings', icon: <SettingsIcon size={16} /> },
@@ -96,15 +94,16 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
   }
 
   function handleProductCreated(product: Product, action: 'add-stock' | 'view') {
+    // The product list is already being refreshed via onProductCreated
+    // (fired the instant the product exists, independent of which button
+    // the user picks) - this only decides where to navigate next.
     const returnMode = modal.kind === 'add-product' ? modal.returnMode : undefined;
     setModal({ kind: 'none' });
-    refresh().then(() => {
-      if (action === 'add-stock') {
-        openStockModal(returnMode ?? 'stock-in', product);
-      } else {
-        setSelectedProduct(product);
-      }
-    });
+    if (action === 'add-stock') {
+      openStockModal(returnMode ?? 'stock-in', product);
+    } else {
+      setSelectedProduct(product);
+    }
   }
 
   return (
@@ -150,10 +149,6 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
           onAddProduct={() => openAddProduct()}
           onQuickAddStock={() => openStockModal('stock-in')}
         />
-      )}
-
-      {page === 'products' && isManager && (
-        <Products products={products} onSelectProduct={setSelectedProduct} onAddProduct={() => openAddProduct()} />
       )}
 
       {page === 'operations' && <Operations onTransfer={() => openStockModal('transfer')} />}
@@ -211,6 +206,7 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
           autoReturnToStock={!!modal.returnMode}
           onClose={() => setModal({ kind: 'none' })}
           onCreated={handleProductCreated}
+          onProductCreated={refresh}
         />
       )}
 

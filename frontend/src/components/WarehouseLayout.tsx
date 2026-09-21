@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowLeft, Layers, Plus, Trash2 } from 'lucide-react';
-import { api, Location, LocationStock, transferOutLocation } from '../api';
+import { api, confirmRemoveLocation, Location, LocationStock, transferOutLocation } from '../api';
 import { SkeletonRows } from './Skeleton';
 import AreaIcon from './AreaIcon';
 import RackPanel from './RackPanel';
@@ -194,38 +194,33 @@ export default function WarehouseLayout({
     }
   }
 
-  async function removeArea(force: boolean) {
+  async function removeArea(password: string, force: boolean) {
+    // No try/catch here: a failure (e.g. wrong password) must propagate to
+    // RemoveLocationConfirm's own onConfirm/onTransfer handler, which shows
+    // it inline and resets its busy state - matching how the warehouse/
+    // product password-delete flows work.
     if (!currentArea) return;
     setRemovingArea(true);
     try {
-      await api(
-        `/locations/${currentArea.id}`,
-        { method: 'PATCH', body: JSON.stringify({ is_active: false, force }) },
-        token,
-      );
-      showToast(force ? 'Area removed and its stock cleared.' : 'Area removed.');
-      setConfirmingRemoveArea(false);
-      setAreaId(null);
-      await refresh();
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Failed to remove area', 'error');
+      await confirmRemoveLocation(currentArea.id, password, force, token);
+    } finally {
       setRemovingArea(false);
     }
+    showToast(force ? 'Area removed and its stock cleared.' : 'Area removed.');
+    setConfirmingRemoveArea(false);
+    setAreaId(null);
+    await refresh();
   }
 
-  async function transferAreaThenRemove(toLocationId: number) {
+  async function transferAreaThenRemove(toLocationId: number, password: string) {
     if (!currentArea) return;
     const result = await transferOutLocation(currentArea.id, toLocationId, token);
     showToast(result.message);
-    await removeArea(false);
+    await removeArea(password, false);
   }
 
-  function handleRemoveAreaClick(stats: { products: number }) {
-    if (stats.products > 0) {
-      setConfirmingRemoveArea(true);
-    } else {
-      removeArea(false);
-    }
+  function handleRemoveAreaClick() {
+    setConfirmingRemoveArea(true);
   }
 
   function handleCellDrop(event: React.DragEvent, x: number, y: number) {
@@ -377,7 +372,7 @@ export default function WarehouseLayout({
         {canManage && (
           <div className="danger-zone" style={{ marginTop: 24 }}>
             <h4>Danger Zone — {currentArea.name} (Area)</h4>
-            <button className="danger" onClick={() => handleRemoveAreaClick(stats)} disabled={removingArea}>
+            <button className="danger" onClick={handleRemoveAreaClick} disabled={removingArea}>
               <Trash2 size={14} /> {removingArea ? 'Removing...' : 'Remove Area'}
             </button>
           </div>
@@ -395,10 +390,10 @@ export default function WarehouseLayout({
                 targetName={currentArea.name}
                 productCount={stats.products}
                 totalUnits={stats.units}
-                confirmLabel="Remove Anyway"
+                confirmLabel={stats.units > 0 ? 'Remove Anyway' : 'Remove'}
                 destinationRacks={destinationRacks}
                 onCancel={() => setConfirmingRemoveArea(false)}
-                onConfirm={() => removeArea(true)}
+                onConfirm={password => removeArea(password, stats.units > 0)}
                 onTransfer={transferAreaThenRemove}
               />
             );

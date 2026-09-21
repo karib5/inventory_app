@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models import LocationType
+from app.schemas.auth import PasswordConfirm
 
 
 class LocationCreate(BaseModel):
@@ -24,11 +25,16 @@ class LocationUpdate(BaseModel):
     position_x: int | None = Field(default=None, ge=0)
     position_y: int | None = Field(default=None, ge=0)
     capacity: int | None = Field(default=None, ge=0)
-    is_active: bool | None = None
-    # Only meaningful together with is_active=False: without it, deactivating
-    # a location (or anything under it) that still holds stock is refused.
-    # With it, that stock is cleared first - as a recorded adjustment
-    # transaction, never silently - and then the whole subtree is deactivated.
+    # Removing a location (there is no way to reactivate one afterwards,
+    # unlike a warehouse) is password-gated - see LocationRemoveRequest and
+    # POST /locations/{id}/confirm-remove instead of setting is_active here.
+
+
+class LocationRemoveRequest(PasswordConfirm):
+    # Only meaningful when the location (or anything under it) still holds
+    # stock: without it, removing one is refused. With it, that stock is
+    # cleared first - as a recorded adjustment transaction, never silently -
+    # and then the whole subtree is deactivated.
     force: bool = False
 
 

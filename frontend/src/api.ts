@@ -227,3 +227,12 @@ export async function transferOutLocation(
     token,
   );
 }
+
+export async function confirmRemoveLocation(
+  locationId: number,
+  password: string,
+  force: boolean,
+  token: string,
+): Promise<Location> {
+  return api(`/locations/${locationId}/confirm-remove`, { method: 'POST', body: JSON.stringify({ password, force }) }, token);
+}
