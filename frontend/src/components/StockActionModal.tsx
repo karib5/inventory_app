@@ -105,6 +105,12 @@ export default function StockActionModal({
     ? stockByLocation.find(s => String(s.location_id) === locationId)?.quantity ?? 0
     : null;
 
+  // Every mode requires at least one location; transfer requires both ends.
+  // Enforced here directly rather than relying only on the picker's own
+  // native-validation shim, which isn't reliably focusable/checkable in
+  // every browser.
+  const missingLocation = !locationId || (mode === 'transfer' && !toLocationId);
+
   // Feeds LocationPicker's per-node "N available" display wherever the
   // picker is choosing where THIS product's existing stock is being drawn
   // from (stock out, transfer's From, adjust) - not for a destination.
@@ -121,7 +127,7 @@ export default function StockActionModal({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!selectedProduct) return;
+    if (!selectedProduct || missingLocation) return;
     setBusy(true);
     setError('');
     try {
@@ -306,15 +312,6 @@ export default function StockActionModal({
             </>
           ) : mode === 'adjust' ? (
             <>
-              <div className="field">
-                <label>Change (use - to reduce)</label>
-                <input
-                  type="number"
-                  value={adjustQuantity}
-                  onChange={e => setAdjustQuantity(e.target.value)}
-                  required
-                />
-              </div>
               <LocationPicker
                 warehouses={warehouses}
                 locations={locations}
@@ -329,22 +326,21 @@ export default function StockActionModal({
               />
               {locationId && <p style={{ marginTop: -10, color: 'var(--text-muted)' }}>Available here: {availableAtSource}</p>}
               <div className="field">
+                <label>Change (use - to reduce)</label>
+                <input
+                  type="number"
+                  value={adjustQuantity}
+                  onChange={e => setAdjustQuantity(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="field">
                 <label>Reason (required)</label>
                 <input value={note} onChange={e => setNote(e.target.value)} required />
               </div>
             </>
           ) : (
             <>
-              <div className="field">
-                <label>Quantity</label>
-                <QuantityStepper
-                  value={quantity}
-                  onChange={setQuantity}
-                  quickSteps={[5, 10, 25]}
-                  max={mode === 'stock-out' ? availableAtSource ?? undefined : undefined}
-                />
-              </div>
-
               <LocationPicker
                 warehouses={warehouses}
                 locations={locations}
@@ -362,6 +358,16 @@ export default function StockActionModal({
               )}
 
               <div className="field">
+                <label>Quantity</label>
+                <QuantityStepper
+                  value={quantity}
+                  onChange={setQuantity}
+                  quickSteps={[5, 10, 25]}
+                  max={mode === 'stock-out' ? availableAtSource ?? undefined : undefined}
+                />
+              </div>
+
+              <div className="field">
                 <label>Note (optional)</label>
                 <input value={note} onChange={e => setNote(e.target.value)} />
               </div>
@@ -371,7 +377,7 @@ export default function StockActionModal({
           {error && <div className="error">{error}</div>}
 
           <div className="modal-actions">
-            <button className="primary" disabled={busy}>
+            <button className="primary" disabled={busy || missingLocation}>
               {busy ? 'Saving...' : confirmLabel(mode, mode === 'adjust' ? Number(adjustQuantity) || 0 : quantity)}
             </button>
             <button type="button" onClick={onClose}>
