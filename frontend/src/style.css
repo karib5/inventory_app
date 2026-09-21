@@ -244,6 +244,23 @@ tr.clickable:hover{background:#f8fafc}
 .storage-path{display:flex;align-items:center;flex-wrap:wrap;gap:4px;color:var(--text);font-size:13.5px}
 .storage-path svg{color:var(--text-muted);flex-shrink:0;margin-right:2px}
 .storage-path-sep{color:var(--text-muted)}
+
+/* ---------- interactive location picker (Area -> Rack -> Shelf) ---------- */
+.location-empty-hint{color:var(--text-muted);font-size:13px;margin:6px 0 0}
+.location-drilldown{border:1px solid var(--border);border-radius:var(--radius);padding:12px;background:var(--bg)}
+.location-breadcrumb{display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin-bottom:10px}
+.location-crumb{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border:0;border-radius:6px;background:transparent;color:var(--text-muted);font-size:12.5px;font-weight:600}
+.location-crumb:hover{background:var(--card);color:var(--text)}
+.location-crumb-active{color:var(--accent);background:var(--accent-soft)}
+.location-crumb-sep{color:var(--text-muted);flex-shrink:0}
+.location-node-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.location-node{display:flex;align-items:center;gap:9px;text-align:left;padding:9px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:border-color .12s,transform .12s}
+.location-node:hover{border-color:var(--accent);transform:translateY(-1px)}
+.location-node-icon{width:30px;height:30px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.location-node-body{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.location-node-body strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.location-node-meta{color:var(--text-muted);font-size:11px}
+.location-required-shim{position:absolute;width:1px;height:1px;padding:0;margin:0;border:0;opacity:0;pointer-events:none}
 .activity-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px}
 .activity-row .act-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 .activity-row .meta{color:var(--text-muted);font-size:12px}
