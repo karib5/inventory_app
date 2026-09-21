@@ -1,4 +1,8 @@
-export const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+// ?? (not ||) so VITE_API_URL="" is a deliberate "use relative URLs, same
+// origin as the page" — needed when Vite's dev-server proxy forwards
+// /api and /uploads to the backend (see vite.config.ts). Unset entirely
+// still falls back to the local backend's default address.
+export const API_ORIGIN = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000').replace(/\/+$/, '');
 export const API = `${API_ORIGIN}/api`;
 
 export function resolveImageUrl(url: string | null): string | null {
