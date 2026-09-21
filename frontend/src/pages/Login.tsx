@@ -1,7 +1,13 @@
 import React from 'react';
 import { api } from '../api';
 
-export default function Login({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
+export default function Login({
+  onLoggedIn,
+  sessionMessage,
+}: {
+  onLoggedIn: (token: string) => void;
+  sessionMessage?: string;
+}) {
   const [email, setEmail] = React.useState('admin@gmail.com');
   const [password, setPassword] = React.useState('ChangeMe123!');
   const [error, setError] = React.useState('');
@@ -28,6 +34,7 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (token: string) => v
       <form className="card login-card" onSubmit={login}>
         <h1>Inventory</h1>
         <p>Storage Management System</p>
+        {sessionMessage && <div className="session-banner">{sessionMessage}</div>}
         <label>
           Email
           <input value={email} onChange={e => setEmail(e.target.value)} type="email" />

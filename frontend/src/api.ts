@@ -124,6 +124,19 @@ export type Transfer = {
   created_at: string;
 };
 
+type UnauthorizedHandler = () => void;
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+/** Registered once by the app shell (App.tsx). Every authenticated request
+ * goes through api() below, so this is the single place that can detect
+ * "the token this page is using is no longer valid" regardless of which
+ * page or component made the call — pages should not add their own
+ * expired-token handling. The handler is responsible for clearing the
+ * stored token and returning the user to the login screen. */
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
+  unauthorizedHandler = handler;
+}
+
 export async function api(path: string, options: RequestInit = {}, token?: string) {
   const headers = new Headers(options.headers);
   if (
@@ -136,6 +149,12 @@ export async function api(path: string, options: RequestInit = {}, token?: strin
   }
   if (token) headers.set('Authorization', `Bearer ${token}`);
   const response = await fetch(`${API}${path}`, { ...options, headers });
+  // Only requests that were actually sent with a token can mean "your
+  // session died" - a 401 from /auth/login itself just means wrong
+  // credentials, which is a normal per-form error, not a session expiry.
+  if (response.status === 401 && token) {
+    unauthorizedHandler?.();
+  }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const message =
