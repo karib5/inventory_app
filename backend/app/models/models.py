@@ -193,6 +193,28 @@ class StockTransfer(Base):
     user: Mapped["User"] = relationship()
 
 
+class PasswordResetToken(Base):
+    """A one-time code for the "forgot password" flow, not a clickable
+    link: the client (web, desktop, or mobile - none of them can assume a
+    browser is available to open a magic link in) collects the code the
+    user was emailed and submits it back through the same JSON API used
+    everywhere else in this app. Only the SHA-256 hash of the code is
+    stored, the same reasoning as never storing a plaintext password -
+    a database leak alone should never hand out a usable reset code."""
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    code_hash: Mapped[str] = mapped_column(String(64), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    user: Mapped["User"] = relationship()
+
+
 class InventoryTransaction(Base):
     """previous_quantity/new_quantity are the product's total quantity for stock_in,
     stock_out and adjustment rows; for transfer_out/transfer_in rows they are the
