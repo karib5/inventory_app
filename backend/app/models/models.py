@@ -66,6 +66,7 @@ class Warehouse(Base):
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True)
     code: Mapped[str] = mapped_column(String(50))
     name: Mapped[str] = mapped_column(String(150))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -86,6 +87,17 @@ class Location(Base):
     location_type: Mapped[LocationType | None] = mapped_column(String(20), nullable=True)
     name: Mapped[str] = mapped_column(String(120))
     code: Mapped[str] = mapped_column(String(50))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Visual warehouse builder metadata. position_x/position_y are grid-cell
+    # indices (not pixels) among siblings sharing the same parent - that
+    # makes "no overlapping racks" and "snap into position" a property of
+    # the grid itself rather than something that needs collision math.
+    # capacity is reused by role: on an Area, the max number of direct rack
+    # children it accepts; on a Shelf, its unit storage capacity. Unused
+    # (None) on other location types.
+    position_x: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    position_y: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     company: Mapped[Company] = relationship(back_populates="locations")
@@ -113,6 +125,10 @@ class Product(Base):
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     quantity: Mapped[int] = mapped_column(Integer, default=0)
     minimum_stock_level: Mapped[int] = mapped_column(Integer, default=10)
+    # False means "archived": hidden from the normal catalog but its rows
+    # (and every transaction that references it) are kept intact. Used
+    # instead of a hard delete once a product has inventory history.
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
