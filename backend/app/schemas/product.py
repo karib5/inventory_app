@@ -8,7 +8,7 @@ class ProductCreate(BaseModel):
     description: str | None = None
     image_url: str | None = None
     quantity: int = Field(default=0, ge=0)
-    minimum_stock_level: int = Field(default=0, ge=0)
+    minimum_stock_level: int = Field(default=10, ge=0)
     location_id: int | None = None
 
 

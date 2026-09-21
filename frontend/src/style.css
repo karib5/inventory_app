@@ -138,10 +138,11 @@ tr.clickable:hover{background:#f8fafc}
 .modal{background:var(--card);border-radius:var(--radius-lg);width:min(560px,100%);padding:28px;box-shadow:0 20px 60px #00000030;position:relative}
 .modal h2{margin-top:0}
 .modal-actions{display:flex;gap:10px;margin-top:20px}
-.modal .field{margin-bottom:16px}
-.modal .field label{display:block;font-weight:600;margin-bottom:6px;font-size:14px}
-.modal .field .field-hint{font-weight:400;color:var(--text-muted);font-size:12px;margin-left:6px}
-.modal .field input,.modal .field select,.modal .field textarea{width:100%;padding:11px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px}
+.modal .field,.drawer .field{margin-bottom:16px}
+.modal .field label,.drawer .field label{display:block;font-weight:600;margin-bottom:6px;font-size:14px}
+.modal .field .field-hint,.drawer .field .field-hint{font-weight:400;color:var(--text-muted);font-size:12px;margin-left:6px}
+.modal .field input,.modal .field select,.modal .field textarea,
+.drawer .field input,.drawer .field select,.drawer .field textarea{width:100%;padding:11px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px}
 .modal-close{position:absolute;top:16px;right:16px}
 .step-indicator{display:flex;gap:6px;margin-bottom:20px}
 .step-indicator span{flex:1;height:4px;border-radius:2px;background:var(--border)}
@@ -189,6 +190,26 @@ tr.clickable:hover{background:#f8fafc}
 .tile .tile-icon{width:36px;height:36px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center}
 .tile .tile-title{font-weight:700}
 .tile .tile-desc{color:var(--text-muted);font-size:13px}
+
+/* ---------- view toggle (grid / list) ---------- */
+.view-toggle{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:3px}
+.view-toggle button{background:transparent;border-color:transparent;padding:7px 12px;font-size:13px;color:var(--text-muted)}
+.view-toggle button:hover{background:#e4e9f1}
+.view-toggle button.active{background:var(--card);color:var(--text);box-shadow:0 1px 2px #0f1b2d1a}
+
+/* ---------- product cards (grid view) ---------- */
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.product-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:border-color .12s,transform .12s}
+.product-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.product-card-image{display:flex;align-items:center;justify-content:center;padding:18px;background:linear-gradient(135deg,#eef1f6,#dbe3ee)}
+.product-card-image .thumb-lg{width:84px;height:84px}
+.product-card-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px}
+.product-card-title{font-weight:700;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.product-card-sku{color:var(--text-muted);font-size:12.5px}
+.product-card-stats{display:flex;gap:18px;margin:2px 0 4px}
+.product-card-stats strong{display:block;font-size:16px;line-height:1.2}
+.product-card-stats span{color:var(--text-muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
+.product-card .badge{align-self:flex-start}
 
 /* ---------- warehouse cards ---------- */
 .warehouse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
