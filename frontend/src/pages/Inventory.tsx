@@ -1,16 +1,58 @@
 import React from 'react';
-import { Search } from 'lucide-react';
-import { Location, Product, User, Warehouse } from '../api';
+import { ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { Product, User, Warehouse } from '../api';
 import Thumbnail from '../components/Thumbnail';
 import StockStatusBadge from '../components/StockStatusBadge';
 import { getStockStatus } from '../utils';
 
 type StatusFilter = 'all' | 'in-stock' | 'low' | 'out';
 
+const VISIBLE_LOCATIONS = 2;
+
+function LocationsCell({ product }: { product: Product }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const locs = product.stock_locations;
+
+  if (locs.length === 0) return <span style={{ color: 'var(--text-muted)' }}>—</span>;
+
+  const visible = expanded ? locs : locs.slice(0, VISIBLE_LOCATIONS);
+  const hiddenCount = locs.length - visible.length;
+
+  return (
+    <div onClick={e => e.stopPropagation()}>
+      {visible.map(loc => (
+        <div key={loc.location_id} className="location-row">
+          <span>
+            {loc.location_code} — {loc.location_name}
+          </span>
+          <strong>{loc.quantity}</strong>
+        </div>
+      ))}
+      {locs.length > VISIBLE_LOCATIONS && (
+        <button
+          type="button"
+          className="ghost"
+          style={{ padding: '4px 0', fontSize: 12 }}
+          onClick={() => setExpanded(e => !e)}
+        >
+          {expanded ? (
+            <>
+              <ChevronUp size={12} /> Show less
+            </>
+          ) : (
+            <>
+              <ChevronDown size={12} /> View all ({hiddenCount} more)
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function Inventory({
   user,
   products,
-  locations,
   warehouses,
   initialStatusFilter,
   onSelectProduct,
@@ -19,7 +61,6 @@ export default function Inventory({
 }: {
   user: User;
   products: Product[];
-  locations: Location[];
   warehouses: Warehouse[];
   initialStatusFilter?: StatusFilter | null;
   onSelectProduct: (product: Product) => void;
@@ -35,11 +76,6 @@ export default function Inventory({
     if (initialStatusFilter) setStatusFilter(initialStatusFilter);
   }, [initialStatusFilter]);
 
-  function locationOf(product: Product) {
-    if (product.location_id === null) return null;
-    return locations.find(l => l.id === product.location_id) ?? null;
-  }
-
   const filtered = products.filter(p => {
     const q = query.trim().toLowerCase();
     if (q) {
@@ -50,9 +86,8 @@ export default function Inventory({
       if (!matches) return false;
     }
     if (statusFilter !== 'all' && getStockStatus(p) !== statusFilter) return false;
-    if (warehouseFilter) {
-      const loc = locationOf(p);
-      if (!loc || String(loc.warehouse_id) !== warehouseFilter) return false;
+    if (warehouseFilter && !p.stock_locations.some(loc => String(loc.warehouse_id) === warehouseFilter)) {
+      return false;
     }
     return true;
   });
@@ -139,28 +174,27 @@ export default function Inventory({
                 <th>Product</th>
                 <th>SKU</th>
                 <th>Available</th>
-                <th>Primary Location</th>
+                <th>Locations</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(p => {
-                const loc = locationOf(p);
-                return (
-                  <tr key={p.id} className="clickable" onClick={() => onSelectProduct(p)}>
-                    <td>
-                      <Thumbnail src={p.image_url} alt={p.name} />
-                    </td>
-                    <td>{p.name}</td>
-                    <td>{p.sku}</td>
-                    <td>{p.quantity} units</td>
-                    <td>{loc ? `${loc.code} — ${loc.name}` : '—'}</td>
-                    <td>
-                      <StockStatusBadge product={p} />
-                    </td>
-                  </tr>
-                );
-              })}
+              {filtered.map(p => (
+                <tr key={p.id} className="clickable" onClick={() => onSelectProduct(p)}>
+                  <td>
+                    <Thumbnail src={p.image_url} alt={p.name} />
+                  </td>
+                  <td>{p.name}</td>
+                  <td>{p.sku}</td>
+                  <td>{p.quantity} units</td>
+                  <td>
+                    <LocationsCell product={p} />
+                  </td>
+                  <td>
+                    <StockStatusBadge product={p} />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         ) : (

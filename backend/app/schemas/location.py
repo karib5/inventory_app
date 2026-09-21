@@ -25,6 +25,11 @@ class LocationUpdate(BaseModel):
     position_y: int | None = Field(default=None, ge=0)
     capacity: int | None = Field(default=None, ge=0)
     is_active: bool | None = None
+    # Only meaningful together with is_active=False: without it, deactivating
+    # a location (or anything under it) that still holds stock is refused.
+    # With it, that stock is cleared first - as a recorded adjustment
+    # transaction, never silently - and then the whole subtree is deactivated.
+    force: bool = False
 
 
 class LocationRead(BaseModel):

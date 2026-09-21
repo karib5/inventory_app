@@ -26,7 +26,11 @@ def list_warehouses(current_user: User = Depends(require_company_user), db: Sess
             func.coalesce(func.sum(ProductStock.quantity), 0),
         )
         .join(ProductStock, ProductStock.location_id == Location.id)
-        .where(Location.company_id == current_user.company_id, ProductStock.quantity > 0)
+        .where(
+            Location.company_id == current_user.company_id,
+            Location.is_active.is_(True),
+            ProductStock.quantity > 0,
+        )
         .group_by(Location.warehouse_id)
     ).all()
     stats_by_warehouse = {row[0]: (row[1], row[2]) for row in stats_rows}
@@ -114,7 +118,7 @@ def get_warehouse(
             func.coalesce(func.sum(ProductStock.quantity), 0),
         )
         .join(Location, Location.id == ProductStock.location_id)
-        .where(Location.warehouse_id == warehouse_id, ProductStock.quantity > 0)
+        .where(Location.warehouse_id == warehouse_id, Location.is_active.is_(True), ProductStock.quantity > 0)
     ).first()
 
     return WarehouseDetail(
@@ -158,7 +162,7 @@ def get_warehouse_location_stock(
             func.sum(ProductStock.quantity),
         )
         .join(Location, Location.id == ProductStock.location_id)
-        .where(Location.warehouse_id == warehouse_id, ProductStock.quantity > 0)
+        .where(Location.warehouse_id == warehouse_id, Location.is_active.is_(True), ProductStock.quantity > 0)
         .group_by(ProductStock.location_id)
     ).all()
     return [LocationStock(location_id=row[0], product_count=row[1], total_units=row[2]) for row in rows]
@@ -209,16 +213,31 @@ def confirm_delete_warehouse(
         # as a normal in-modal error instead, not sign the admin out.
         raise HTTPException(400, "Incorrect password")
 
-    location_ids = db.scalars(select(Location.id).where(Location.warehouse_id == warehouse_id)).all()
+    # All-time locations (including already-removed ones) for the audit-trail
+    # check below - a past transaction must block hard-delete forever,
+    # regardless of whether the location it happened at still exists. Only
+    # *active* locations count for the live-state checks (a product still
+    # assigned there, or stock still sitting there) - a location that was
+    # already removed can't be silently hiding "live" state a delete would
+    # destroy, since removing a location already requires clearing its stock.
+    all_location_ids = db.scalars(select(Location.id).where(Location.warehouse_id == warehouse_id)).all()
+    active_location_ids = db.scalars(
+        select(Location.id).where(Location.warehouse_id == warehouse_id, Location.is_active.is_(True))
+    ).all()
     has_history = False
-    if location_ids:
+    if all_location_ids:
         has_history = bool(
             db.scalar(
-                select(InventoryTransaction.id).where(InventoryTransaction.location_id.in_(location_ids)).limit(1)
+                select(InventoryTransaction.id).where(InventoryTransaction.location_id.in_(all_location_ids)).limit(1)
             )
-            or db.scalar(select(Product.id).where(Product.location_id.in_(location_ids)).limit(1))
+        )
+    if not has_history and active_location_ids:
+        has_history = bool(
+            db.scalar(select(Product.id).where(Product.location_id.in_(active_location_ids)).limit(1))
             or db.scalar(
-                select(ProductStock.id).where(ProductStock.location_id.in_(location_ids), ProductStock.quantity > 0).limit(1)
+                select(ProductStock.id)
+                .where(ProductStock.location_id.in_(active_location_ids), ProductStock.quantity > 0)
+                .limit(1)
             )
         )
 
@@ -232,8 +251,8 @@ def confirm_delete_warehouse(
             "structure and stock history are preserved, but it's no longer available for new activity.",
         )
 
-    if location_ids:
-        db.execute(delete(Location).where(Location.id.in_(location_ids)))
+    if all_location_ids:
+        db.execute(delete(Location).where(Location.id.in_(all_location_ids)))
     db.delete(warehouse)
     db.commit()
     return DeleteResult(result="deleted", message=f'"{warehouse_name}" was permanently deleted.')

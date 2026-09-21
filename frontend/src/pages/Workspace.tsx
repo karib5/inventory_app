@@ -144,7 +144,6 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
         <Inventory
           user={user}
           products={products}
-          locations={locations}
           warehouses={warehouses}
           initialStatusFilter={inventoryStatusFilter}
           onSelectProduct={setSelectedProduct}

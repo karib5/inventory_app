@@ -20,13 +20,6 @@ class ProductUpdate(BaseModel):
     minimum_stock_level: int | None = Field(default=None, ge=0)
 
 
-class ProductRead(ProductCreate):
-    id: int
-    company_id: int
-    is_active: bool
-    model_config = ConfigDict(from_attributes=True)
-
-
 class ProductStockLocationRead(BaseModel):
     location_id: int
     location_code: str
@@ -39,3 +32,14 @@ class ProductStockLocationRead(BaseModel):
     # having to walk the location hierarchy itself.
     path: list[str]
     quantity: int
+
+
+class ProductRead(ProductCreate):
+    id: int
+    company_id: int
+    is_active: bool
+    # Populated (batched, not per-row) by list_products only - every other
+    # endpoint that returns a ProductRead leaves this as its default empty
+    # list, same as it always implicitly did before this field existed.
+    stock_locations: list[ProductStockLocationRead] = Field(default_factory=list)
+    model_config = ConfigDict(from_attributes=True)

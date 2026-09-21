@@ -9,8 +9,9 @@ new tables, it does not add columns to ones that already exist, which is
 what this covers.
 """
 
-from sqlalchemy import text
+from sqlalchemy import func, select, text
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session
 
 _ADD_COLUMN_STATEMENTS = [
     "ALTER TABLE warehouses ADD COLUMN IF NOT EXISTS description TEXT",
@@ -35,3 +36,42 @@ def run_additive_migrations(engine: Engine) -> None:
                     conn.execute(text(statement.replace(" IF NOT EXISTS", "")))
                 except Exception:
                     pass
+
+
+def reconcile_orphaned_location_stock(engine: Engine) -> None:
+    """One-time, idempotent cleanup for stock rows left behind at a rack or
+    shelf that was removed (Location.is_active set False) before the
+    "remove" endpoint started refusing to deactivate a location that still
+    holds stock. Every read path (warehouse/product stats, delete-history
+    checks, a product's own stock breakdown) already filters those rows out
+    by joining on Location.is_active, so a leftover ProductStock row here
+    represents nothing the user can currently see anywhere in the app -
+    this just deletes that inert bookkeeping row and recomputes the
+    product's cached quantity to match, rather than leaving dead rows
+    sitting around forever. Imported lazily (not at module import time) to
+    avoid a circular import between app.db and app.models."""
+    from app.models import Location, Product, ProductStock
+
+    with Session(engine) as session:
+        orphaned = session.scalars(
+            select(ProductStock)
+            .join(Location, Location.id == ProductStock.location_id)
+            .where(Location.is_active.is_(False), ProductStock.quantity > 0)
+        ).all()
+        if not orphaned:
+            return
+
+        touched_product_ids = {row.product_id for row in orphaned}
+        for row in orphaned:
+            session.delete(row)
+        session.flush()
+
+        for product in session.scalars(select(Product).where(Product.id.in_(touched_product_ids))):
+            product.quantity = (
+                session.scalar(
+                    select(func.coalesce(func.sum(ProductStock.quantity), 0))
+                    .where(ProductStock.product_id == product.id)
+                )
+                or 0
+            )
+        session.commit()

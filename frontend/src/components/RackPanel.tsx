@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowDown, ArrowUp, Layers, Pencil, Plus, Trash2 } from 'lucide-react';
 import { api, Location, LocationStock } from '../api';
 import Drawer from './Drawer';
+import RemoveLocationConfirm from './RemoveLocationConfirm';
 import { showToast } from './Toast';
 
 function slugCode(prefix: string, name: string): string {
@@ -37,6 +38,7 @@ function ShelfRow({
   const [capacity, setCapacity] = React.useState(shelf.capacity != null ? String(shelf.capacity) : '');
   const [saving, setSaving] = React.useState(false);
   const [removing, setRemoving] = React.useState(false);
+  const [confirmingRemove, setConfirmingRemove] = React.useState(false);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -60,16 +62,24 @@ function ShelfRow({
     }
   }
 
-  async function remove() {
+  async function remove(force: boolean) {
     setRemoving(true);
     try {
-      await api(`/locations/${shelf.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: false }) }, token);
-      showToast('Shelf removed.');
+      await api(`/locations/${shelf.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: false, force }) }, token);
+      showToast(force ? 'Shelf removed and its stock cleared.' : 'Shelf removed.');
+      setConfirmingRemove(false);
       onRemoved();
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Failed to remove shelf', 'error');
-    } finally {
       setRemoving(false);
+    }
+  }
+
+  function handleRemoveClick() {
+    if ((stock?.product_count ?? 0) > 0) {
+      setConfirmingRemove(true);
+    } else {
+      remove(false);
     }
   }
 
@@ -124,10 +134,21 @@ function ShelfRow({
           <button className="icon-btn ghost" onClick={() => setEditing(true)} aria-label="Edit shelf">
             <Pencil size={14} />
           </button>
-          <button className="icon-btn ghost" onClick={remove} disabled={removing} aria-label="Remove shelf">
+          <button className="icon-btn ghost" onClick={handleRemoveClick} disabled={removing} aria-label="Remove shelf">
             <Trash2 size={14} />
           </button>
         </div>
+      )}
+      {confirmingRemove && (
+        <RemoveLocationConfirm
+          title="Remove Shelf?"
+          targetName={shelf.name}
+          productCount={stock?.product_count ?? 0}
+          totalUnits={stock?.total_units ?? 0}
+          confirmLabel="Remove Anyway"
+          onCancel={() => setConfirmingRemove(false)}
+          onConfirm={() => remove(true)}
+        />
       )}
     </div>
   );
@@ -155,18 +176,23 @@ export default function RackPanel({
   const [saving, setSaving] = React.useState(false);
   const [addingShelf, setAddingShelf] = React.useState(false);
   const [removingRack, setRemovingRack] = React.useState(false);
+  const [confirmingRemoveRack, setConfirmingRemoveRack] = React.useState(false);
 
   React.useEffect(() => {
     setName(rack.name);
     setDescription(rack.description ?? '');
   }, [rack.id, rack.name, rack.description]);
 
+  // Includes the rack's own direct stock (a rack can hold stock without a
+  // shelf under it) as well as everything on its shelves - removing the
+  // rack would clear all of it, so both need to count toward the warning.
+  const rackDirectStock = stockByLocation.get(rack.id);
   const rackStock = shelves.reduce(
     (sum, s) => {
       const stock = stockByLocation.get(s.id);
       return { products: sum.products + (stock?.product_count ?? 0), units: sum.units + (stock?.total_units ?? 0) };
     },
-    { products: 0, units: 0 },
+    { products: rackDirectStock?.product_count ?? 0, units: rackDirectStock?.total_units ?? 0 },
   );
 
   async function saveRack(event: React.FormEvent) {
@@ -233,16 +259,24 @@ export default function RackPanel({
     }
   }
 
-  async function removeRack() {
+  async function removeRack(force: boolean) {
     setRemovingRack(true);
     try {
-      await api(`/locations/${rack.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: false }) }, token);
-      showToast('Rack removed.');
+      await api(`/locations/${rack.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: false, force }) }, token);
+      showToast(force ? 'Rack removed and its stock cleared.' : 'Rack removed.');
       onChanged();
       onClose();
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Failed to remove rack', 'error');
       setRemovingRack(false);
+    }
+  }
+
+  function handleRemoveRackClick() {
+    if (rackStock.products > 0) {
+      setConfirmingRemoveRack(true);
+    } else {
+      removeRack(false);
     }
   }
 
@@ -331,10 +365,22 @@ export default function RackPanel({
       {canManage && (
         <div className="drawer-section danger-zone">
           <h4>Danger Zone</h4>
-          <button className="danger" onClick={removeRack} disabled={removingRack}>
+          <button className="danger" onClick={handleRemoveRackClick} disabled={removingRack}>
             <Trash2 size={14} /> {removingRack ? 'Removing...' : 'Remove Rack'}
           </button>
         </div>
+      )}
+
+      {confirmingRemoveRack && (
+        <RemoveLocationConfirm
+          title="Remove Rack?"
+          targetName={rack.name}
+          productCount={rackStock.products}
+          totalUnits={rackStock.units}
+          confirmLabel="Remove Anyway"
+          onCancel={() => setConfirmingRemoveRack(false)}
+          onConfirm={() => removeRack(true)}
+        />
       )}
     </Drawer>
   );
