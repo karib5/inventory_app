@@ -57,15 +57,10 @@ git push -u origin main
    postgresql://inventory_user:somepassword@dpg-xxxxx/inventory_db
    ```
 
-**Important — edit this before using it.** Our backend uses the `psycopg`
-(v3) driver, so the URL needs `postgresql+psycopg://`, not plain
-`postgresql://`. Just add `+psycopg` after `postgresql`:
-
-```
-postgresql+psycopg://inventory_user:somepassword@dpg-xxxxx/inventory_db
-```
-
-Keep this edited URL — you'll paste it into `DATABASE_URL` in Part 4.
+You can paste this URL in as-is — the backend automatically rewrites
+`postgres://` / `postgresql://` to `postgresql+psycopg://` at startup (our
+driver, `psycopg` v3, needs that exact prefix, but you don't have to edit
+the URL by hand). Keep it — you'll paste it into `DATABASE_URL` in Part 4.
 
 ---
 
@@ -97,7 +92,7 @@ as the database, **Create**, then copy its connection string for Part 4.
 
    | Key | Value |
    |---|---|
-   | `DATABASE_URL` | the edited Internal Database URL from Part 2 |
+   | `DATABASE_URL` | the Internal Database URL from Part 2, pasted as-is |
    | `SECRET_KEY` | a random string — generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
    | `CORS_ORIGINS` | your Vercel URL, e.g. `https://your-app.vercel.app` — you won't have this until Part 6, so put a placeholder like `https://placeholder.vercel.app` now and fix it in Part 7 |
    | `SEED_ADMIN_EMAIL` | an email you choose — don't leave this as `admin@example.com` for anything a supervisor can reach |
