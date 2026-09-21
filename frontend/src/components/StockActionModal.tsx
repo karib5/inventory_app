@@ -5,6 +5,7 @@ import Modal from './Modal';
 import LocationPicker from './LocationPicker';
 import QuantityStepper from './QuantityStepper';
 import Thumbnail from './Thumbnail';
+import { showToast } from './Toast';
 
 export type StockActionMode = 'stock-in' | 'stock-out' | 'adjust' | 'transfer';
 
@@ -178,6 +179,7 @@ export default function StockActionModal({
         );
         setSuccessMessage(`${quantity} units transferred successfully.`);
       }
+      showToast(`${selectedProduct.name}: ${TITLES[mode].toLowerCase()} complete.`);
       onDone();
       setTimeout(onClose, 1100);
     } catch (e) {

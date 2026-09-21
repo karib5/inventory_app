@@ -1,5 +1,12 @@
 import React from 'react';
+import { Boxes, Eye, EyeOff, Loader2, ShieldCheck, TrendingUp, Warehouse, Zap } from 'lucide-react';
 import { api } from '../api';
+
+const FEATURES = [
+  { icon: Zap, label: 'Real-time inventory' },
+  { icon: Warehouse, label: 'Warehouse management' },
+  { icon: TrendingUp, label: 'Stock tracking' },
+];
 
 export default function Login({
   onLoggedIn,
@@ -8,13 +15,15 @@ export default function Login({
   onLoggedIn: (token: string) => void;
   sessionMessage?: string;
 }) {
-  const [email, setEmail] = React.useState('admin@gmail.com');
-  const [password, setPassword] = React.useState('ChangeMe123!');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
   async function login(event: React.FormEvent) {
     event.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError('');
     try {
@@ -30,23 +39,96 @@ export default function Login({
   }
 
   return (
-    <main className="login-page">
-      <form className="card login-card" onSubmit={login}>
-        <h1>Inventory</h1>
-        <p>Storage Management System</p>
-        {sessionMessage && <div className="session-banner">{sessionMessage}</div>}
-        <label>
-          Email
-          <input value={email} onChange={e => setEmail(e.target.value)} type="email" />
-        </label>
-        <label>
-          Password
-          <input value={password} onChange={e => setPassword(e.target.value)} type="password" />
-        </label>
-        {error && <div className="error">{error}</div>}
-        <button disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}</button>
-        <small>Development login: admin@gmail.com / ChangeMe123!</small>
-      </form>
+    <main className="auth-page">
+      <section className="auth-brand" aria-hidden="true">
+        <div className="auth-brand-grid" />
+        <div className="auth-brand-content">
+          <div className="auth-logo">
+            <Boxes size={22} /> Inventory
+          </div>
+          <h1>Manage your entire warehouse operation in one place.</h1>
+          <p>Track products, warehouses, and stock movements in real time — built for teams that can't afford inventory surprises.</p>
+          <ul className="auth-features">
+            {FEATURES.map(({ icon: Icon, label }) => (
+              <li key={label}>
+                <span className="auth-feature-icon">
+                  <Icon size={16} />
+                </span>
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="auth-form-side">
+        <form className="auth-card" onSubmit={login} noValidate>
+          <div className="auth-card-logo">
+            <Boxes size={24} />
+          </div>
+          <h2>Welcome back</h2>
+          <p className="auth-subtitle">Sign in to your account</p>
+
+          {sessionMessage && (
+            <div className="session-banner" role="status">
+              <ShieldCheck size={15} /> {sessionMessage}
+            </div>
+          )}
+
+          <div className="field">
+            <label htmlFor="login-email">Email</label>
+            <input
+              id="login-email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="username"
+              autoFocus
+              required
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="login-password">Password</label>
+            <div className="password-field">
+              <input
+                id="login-password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(s => !s)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+                tabIndex={0}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <div className="error" role="alert">
+              {error}
+            </div>
+          )}
+
+          <button className="primary auth-submit" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 size={16} className="spin" /> Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
+          </button>
+        </form>
+      </section>
     </main>
   );
 }

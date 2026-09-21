@@ -29,7 +29,7 @@ Implemented:
 
 Run `python seed.py` from `backend` once. It creates:
 
-- Email: `admin@gmail.com`
+- Email: `admin@example.com`
 - Password: `ChangeMe123!`
 - Role: `super_admin`
 

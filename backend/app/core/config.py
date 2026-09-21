@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     cors_origin_regex: str | None = None
     redis_url: str | None = None
     upload_dir: str = "uploads"
-    seed_admin_email: str = "admin@gmail.com"
+    seed_admin_email: str = "admin@example.com"
     seed_admin_password: str = "ChangeMe123!"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

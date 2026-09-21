@@ -2,6 +2,7 @@ import React from 'react';
 import { Warehouse as WarehouseIcon } from 'lucide-react';
 import { api, resolveImageUrl, User, Warehouse } from '../api';
 import ImageUpload from '../components/ImageUpload';
+import { showToast } from '../components/Toast';
 
 export default function Warehouses({
   token,
@@ -42,6 +43,7 @@ export default function Warehouses({
       setAddress('');
       setImageUrl(null);
       setShowAdd(false);
+      showToast(`Warehouse "${name}" created.`);
       onChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create warehouse');
@@ -59,6 +61,7 @@ export default function Warehouses({
         { method: 'PATCH', body: JSON.stringify({ is_active: !warehouse.is_active }) },
         token,
       );
+      showToast(`Warehouse "${warehouse.name}" ${warehouse.is_active ? 'deactivated' : 'activated'}.`);
       onChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to update warehouse');

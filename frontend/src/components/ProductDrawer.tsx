@@ -7,6 +7,7 @@ import ActivityIcon from './ActivityIcon';
 import ImageUpload from './ImageUpload';
 import Thumbnail from './Thumbnail';
 import StockStatusBadge from './StockStatusBadge';
+import { showToast } from './Toast';
 import { timeAgo } from '../utils';
 
 export default function ProductDrawer({
@@ -61,7 +62,10 @@ export default function ProductDrawer({
     setSavingImage(true);
     try {
       await api(`/products/${product.id}`, { method: 'PATCH', body: JSON.stringify({ image_url: url }) }, token);
+      showToast(url ? 'Product image updated.' : 'Product image removed.');
       onChanged();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Failed to update image.', 'error');
     } finally {
       setSavingImage(false);
     }
@@ -85,6 +89,7 @@ export default function ProductDrawer({
         },
         token,
       );
+      showToast('Product details updated.');
       onChanged();
       setEditingDetails(false);
     } catch (e) {
