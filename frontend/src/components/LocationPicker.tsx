@@ -1,5 +1,7 @@
 import React from 'react';
+import { ChevronRight, Layers, MapPin } from 'lucide-react';
 import { Location, Warehouse } from '../api';
+import AreaIcon from './AreaIcon';
 
 const NO_WAREHOUSE = 'none';
 
@@ -15,6 +17,13 @@ export function locationPath(location: Location, allLocations: Location[]): stri
   return parts.join(' / ');
 }
 
+/** Same Warehouse -> Area -> Rack -> Shelf hierarchy as the visual warehouse
+ * builder, but built for picking a single location rather than editing the
+ * layout: click an area, then (optionally) a rack inside it, then
+ * (optionally) a shelf inside that - each click both selects that node and,
+ * if it has anything inside it, reveals the next level. You can stop
+ * drilling at any level (an area or a rack is a valid location on its own),
+ * exactly like the flat picker this replaces already allowed. */
 export default function LocationPicker({
   warehouses,
   locations,
@@ -38,9 +47,58 @@ export default function LocationPicker({
     warehouseId === NO_WAREHOUSE ? l.warehouse_id === null : String(l.warehouse_id) === warehouseId,
   );
 
+  // The chain of node ids the user has drilled through, root -> deepest.
+  const [path, setPath] = React.useState<number[]>([]);
+
+  // Reconstruct the drill-down chain when a location arrives pre-selected
+  // (or is cleared), so the widget always reflects what's actually chosen.
+  React.useEffect(() => {
+    if (!locationId) {
+      setPath([]);
+      return;
+    }
+    const chain: number[] = [];
+    let current = usableLocations.find(l => String(l.id) === locationId);
+    while (current) {
+      chain.unshift(current.id);
+      const parentId: number | null = current.parent_id;
+      current = parentId != null ? usableLocations.find(l => l.id === parentId) : undefined;
+    }
+    setPath(chain);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationId]);
+
   function handleWarehouseChange(nextWarehouseId: string) {
+    setPath([]);
     onChange(nextWarehouseId, '');
   }
+
+  function selectNode(node: Location) {
+    setPath(prev => [...prev, node.id]);
+    onChange(warehouseId, String(node.id));
+  }
+
+  function jumpToRoot() {
+    setPath([]);
+    onChange(warehouseId, '');
+  }
+
+  function jumpToDepth(depth: number) {
+    const newPath = path.slice(0, depth + 1);
+    setPath(newPath);
+    onChange(warehouseId, String(newPath[newPath.length - 1]));
+  }
+
+  const pathNodes = path.map(id => usableLocations.find(l => l.id === id)).filter((l): l is Location => !!l);
+  const currentParentId = pathNodes.length ? pathNodes[pathNodes.length - 1].id : null;
+  const currentChildren = locationsInScope
+    .filter(l => l.parent_id === currentParentId)
+    .sort((a, b) => (a.position_x ?? a.id) - (b.position_x ?? b.id));
+
+  const warehouseObj = warehouses.find(w => String(w.id) === warehouseId);
+  // Locations with no warehouse ("Other locations") have no hierarchy to
+  // browse - fall back to a plain list for that one legacy case.
+  const isFlatFallback = warehouseId === NO_WAREHOUSE;
 
   return (
     <>
@@ -58,21 +116,86 @@ export default function LocationPicker({
           {hasUnassigned && <option value={NO_WAREHOUSE}>Other locations</option>}
         </select>
       </div>
+
       <div className="field">
         <label>Location</label>
-        <select
-          value={locationId}
-          onChange={e => onChange(warehouseId, e.target.value)}
-          disabled={!warehouseId}
-          required={required}
-        >
-          <option value="">{warehouseId ? 'Select a location...' : 'Choose a warehouse first'}</option>
-          {locationsInScope.map(l => (
-            <option key={l.id} value={l.id}>
-              {locationPath(l, usableLocations)} ({l.code})
-            </option>
-          ))}
-        </select>
+        {!warehouseId ? (
+          <p className="location-empty-hint">Choose a warehouse first.</p>
+        ) : isFlatFallback ? (
+          <select value={locationId} onChange={e => onChange(warehouseId, e.target.value)} required={required}>
+            <option value="">Select a location...</option>
+            {locationsInScope.map(l => (
+              <option key={l.id} value={l.id}>
+                {locationPath(l, usableLocations)} ({l.code})
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="location-drilldown">
+            <div className="location-breadcrumb">
+              <button
+                type="button"
+                className={`location-crumb ${path.length === 0 ? 'location-crumb-active' : ''}`}
+                onClick={jumpToRoot}
+              >
+                <MapPin size={13} /> {warehouseObj?.name ?? 'Warehouse'}
+              </button>
+              {pathNodes.map((node, i) => (
+                <React.Fragment key={node.id}>
+                  <ChevronRight size={13} className="location-crumb-sep" />
+                  <button
+                    type="button"
+                    className={`location-crumb ${i === pathNodes.length - 1 ? 'location-crumb-active' : ''}`}
+                    onClick={() => jumpToDepth(i)}
+                  >
+                    {node.name}
+                  </button>
+                </React.Fragment>
+              ))}
+            </div>
+
+            {currentChildren.length > 0 ? (
+              <div className="location-node-grid">
+                {currentChildren.map(node => {
+                  const childCount = locationsInScope.filter(l => l.parent_id === node.id).length;
+                  return (
+                    <button type="button" key={node.id} className="location-node" onClick={() => selectNode(node)}>
+                      <span className="location-node-icon">
+                        {path.length === 0 ? <AreaIcon name={node.name} size={17} /> : <Layers size={17} />}
+                      </span>
+                      <span className="location-node-body">
+                        <strong>{node.name}</strong>
+                        <span className="location-node-meta">{childCount > 0 ? `${childCount} inside` : node.code}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="location-empty-hint">
+                {pathNodes.length
+                  ? 'Nothing stored inside this one yet - the selection above will be used.'
+                  : 'This warehouse has no storage areas set up yet.'}
+              </p>
+            )}
+
+            {required && (
+              // The drilldown above has no native form control of its own to
+              // anchor HTML5 "required" validation to - this keeps that
+              // validation working (and the browser's own prompt pointing
+              // at the right spot) without being visible or focusable by tab.
+              <input
+                className="location-required-shim"
+                value={locationId}
+                required
+                readOnly
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={() => {}}
+              />
+            )}
+          </div>
+        )}
       </div>
     </>
   );
