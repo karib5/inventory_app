@@ -55,9 +55,14 @@ export default function QuantityStepper({
       {quickSteps && quickSteps.length > 0 && (
         <div className="qty-quick">
           {quickSteps.map(step => (
+            <button type="button" key={`-${step}`} onClick={() => onChange(clamp(value - step))} disabled={value <= min}>
+              -{step}
+            </button>
+          ))}
+          {quickSteps.map(step => (
             <button
               type="button"
-              key={step}
+              key={`+${step}`}
               onClick={() => onChange(clamp(value + step))}
               disabled={max != null && value >= max}
             >

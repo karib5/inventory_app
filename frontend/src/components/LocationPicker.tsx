@@ -107,9 +107,19 @@ export default function LocationPicker({
 
   const pathNodes = path.map(id => usableLocations.find(l => l.id === id)).filter((l): l is Location => !!l);
   const currentParentId = pathNodes.length ? pathNodes[pathNodes.length - 1].id : null;
-  const currentChildren = locationsInScope
-    .filter(l => l.parent_id === currentParentId)
-    .sort((a, b) => (a.position_x ?? a.id) - (b.position_x ?? b.id));
+  // If the current node itself directly holds stock of this product, that
+  // IS where it lives - a rack with 3 units in it, and two empty shelves
+  // underneath, must not let you "select" a shelf that actually has 0.
+  // Drilling only makes sense when the node's own row is empty and the
+  // stock is genuinely divided among what's inside it.
+  const currentDirectStock =
+    productStockByLocation && currentParentId != null ? productStockByLocation.get(currentParentId) ?? 0 : 0;
+  const stockHeldDirectly = productStockByLocation != null && currentDirectStock > 0;
+  const currentChildren = stockHeldDirectly
+    ? []
+    : locationsInScope
+        .filter(l => l.parent_id === currentParentId)
+        .sort((a, b) => (a.position_x ?? a.id) - (b.position_x ?? b.id));
 
   const warehouseObj = warehouses.find(w => String(w.id) === warehouseId);
   // Locations with no warehouse ("Other locations") have no hierarchy to
@@ -194,9 +204,11 @@ export default function LocationPicker({
               </div>
             ) : (
               <p className="location-empty-hint">
-                {pathNodes.length
-                  ? 'Nothing stored inside this one yet - the selection above will be used.'
-                  : 'This warehouse has no storage areas set up yet.'}
+                {stockHeldDirectly
+                  ? `All ${currentDirectStock} unit${currentDirectStock === 1 ? '' : 's'} here are stored directly on this one, not split into anything inside it - the selection above will be used.`
+                  : pathNodes.length
+                    ? 'Nothing stored inside this one yet - the selection above will be used.'
+                    : 'This warehouse has no storage areas set up yet.'}
               </p>
             )}
 
