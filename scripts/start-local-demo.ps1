@@ -257,8 +257,25 @@ if ($backendUp) {
     else { Write-Err "Local API login failed - check backend window logs." }
 }
 if ($publicUrl) {
-    if (Test-Login $publicUrl) { Write-Ok "Public API login succeeded ($publicUrl, proxied through Vite)" }
-    else { Write-Err "Public API login failed through the tunnel. If local login worked but this didn't, check the frontend window for a Vite host-check message." }
+    # Quick Tunnel can report "Registered tunnel connection" before the
+    # public hostname is actually resolvable/routable at Cloudflare's edge.
+    # A single immediate request can hit that warm-up window and fail even
+    # though the tunnel is healthy, so poll instead of testing once - and
+    # never treat that window as a reason to stop cloudflared.
+    Write-Host "    Waiting for the public hostname to become reachable (can take up to 90s right after the tunnel registers)..."
+    $publicLoginOk = $false
+    $publicDeadline = (Get-Date).AddSeconds(90)
+    $publicAttempts = 0
+    while ((Get-Date) -lt $publicDeadline) {
+        $publicAttempts++
+        if (Test-Login $publicUrl) { $publicLoginOk = $true; break }
+        Start-Sleep -Seconds 3
+    }
+    if ($publicLoginOk) {
+        Write-Ok "Public API login succeeded ($publicUrl, proxied through Vite) after $publicAttempts attempt(s)"
+    } else {
+        Write-Err "Public API login still failing after 90s ($publicAttempts attempts). cloudflared is left running - it may just need more time, or check $tunnelOutLog / $tunnelErrLog and that the frontend/backend windows are still up."
+    }
 }
 
 # ---------------------------------------------------------------
