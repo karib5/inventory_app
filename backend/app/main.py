@@ -5,12 +5,13 @@ from fastapi.staticfiles import StaticFiles
 from app.api import admin, auth, inventory, locations, products, transfers, uploads, warehouses
 from app.core.config import settings
 from app.core.paths import get_upload_dir
-from app.db.migrate import run_additive_migrations
+from app.db.migrate import reconcile_orphaned_location_stock, run_additive_migrations
 from app.db.session import Base, engine
 
 # Temporary development bootstrap. We will replace this with Alembic migrations before production.
 Base.metadata.create_all(bind=engine)
 run_additive_migrations(engine)
+reconcile_orphaned_location_stock(engine)
 
 app = FastAPI(title="Inventory Management API", version="0.4.0")
 

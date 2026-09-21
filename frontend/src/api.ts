@@ -84,6 +84,7 @@ export type Product = {
   minimum_stock_level: number;
   location_id: number | null;
   is_active: boolean;
+  stock_locations: ProductStockLocation[];
 };
 
 export type DeleteResult = {

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import require_company_user
 from app.db.session import get_db
-from app.models import Location, LocationType, ProductStock, Role, User, Warehouse
+from app.models import InventoryTransaction, Location, LocationType, Product, ProductStock, Role, TransactionType, User, Warehouse
 from app.schemas.location import LocationCreate, LocationRead, LocationUpdate
 
 router = APIRouter(prefix="/locations", tags=["Locations"])
@@ -78,6 +78,35 @@ def _location_and_descendant_ids(db: Session, location_id: int) -> list[int]:
     return ids
 
 
+def _clear_subtree_stock(db: Session, current_user: User, subtree_ids: list[int], removed_location_name: str) -> None:
+    """Clears every ProductStock row (quantity > 0) at any of these
+    locations, the same way a manual stock-out would: a recorded, properly
+    attributed InventoryTransaction per row plus a matching drop in the
+    product's cached total - never a silent delete of live stock. Used only
+    when a location is force-removed while it still holds stock."""
+    stock_rows = db.scalars(
+        select(ProductStock).where(ProductStock.location_id.in_(subtree_ids), ProductStock.quantity > 0)
+    ).all()
+    for stock in stock_rows:
+        product = db.get(Product, stock.product_id)
+        previous_quantity = product.quantity
+        product.quantity = max(previous_quantity - stock.quantity, 0)
+        db.add(
+            InventoryTransaction(
+                company_id=current_user.company_id,
+                product_id=product.id,
+                location_id=stock.location_id,
+                user_id=current_user.id,
+                type=TransactionType.ADJUSTMENT,
+                quantity_change=-stock.quantity,
+                previous_quantity=previous_quantity,
+                new_quantity=product.quantity,
+                note=f'Stock cleared - "{removed_location_name}" was removed',
+            )
+        )
+        db.delete(stock)
+
+
 @router.get("", response_model=list[LocationRead])
 def list_locations(
     current_user: User = Depends(require_company_user),
@@ -131,21 +160,28 @@ def update_location(
         raise HTTPException(404, "Location not found")
 
     updates = payload.model_dump(exclude_unset=True)
+    force = updates.pop("force", False)
     warehouse_id = updates.get("warehouse_id", location.warehouse_id)
     parent_id = updates.get("parent_id", location.parent_id)
     if parent_id == location_id:
         raise HTTPException(400, "A location cannot be its own parent")
     parent = _validate_hierarchy(db, current_user.company_id, warehouse_id, parent_id)
 
+    descendant_ids: list[int] = []
     if updates.get("is_active") is False and location.is_active:
         subtree_ids = _location_and_descendant_ids(db, location.id)
+        descendant_ids = subtree_ids[1:]
         has_stock = db.scalar(
             select(ProductStock.id).where(ProductStock.location_id.in_(subtree_ids), ProductStock.quantity > 0).limit(1)
         )
         if has_stock:
-            raise HTTPException(
-                400, "This location (or a shelf inside it) still holds stock. Move or clear its stock before removing it."
-            )
+            if not force:
+                raise HTTPException(
+                    400,
+                    "This location (or a shelf inside it) still holds stock. Move it first, or remove this "
+                    "location anyway to clear that stock.",
+                )
+            _clear_subtree_stock(db, current_user, subtree_ids, location.name)
 
     effective_type = updates.get("location_type", location.location_type)
     if effective_type == LocationType.RACK and (parent_id != location.parent_id or "location_type" in updates):
@@ -158,6 +194,14 @@ def update_location(
 
     for field, value in updates.items():
         setattr(location, field, value)
+
+    if descendant_ids:
+        # Removing a rack (or area) also removes what's inside it - a shelf
+        # left behind, still "active", under a parent that no longer shows
+        # up anywhere would be unreachable in the builder from then on.
+        for descendant in db.scalars(select(Location).where(Location.id.in_(descendant_ids))):
+            descendant.is_active = False
+
     db.commit()
     db.refresh(location)
     return location

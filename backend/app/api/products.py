@@ -14,11 +14,44 @@ router = APIRouter(prefix="/products", tags=["Products"])
 
 @router.get("", response_model=list[ProductRead])
 def list_products(current_user: User = Depends(require_company_user), db: Session = Depends(get_db)):
-    return db.scalars(
+    products = db.scalars(
         select(Product)
         .where(Product.company_id == current_user.company_id, Product.is_active.is_(True))
         .order_by(Product.id)
     ).all()
+
+    # One batched query for every product's location breakdown, instead of
+    # the frontend fetching each product's /stock one at a time (N+1).
+    stock_rows = db.scalars(
+        select(ProductStock)
+        .join(Location, Location.id == ProductStock.location_id)
+        .where(
+            ProductStock.company_id == current_user.company_id,
+            Location.is_active.is_(True),
+            ProductStock.quantity > 0,
+        )
+        .order_by(ProductStock.location_id)
+    ).all()
+    stock_by_product: dict[int, list[ProductStockLocationRead]] = {}
+    for row in stock_rows:
+        stock_by_product.setdefault(row.product_id, []).append(
+            ProductStockLocationRead(
+                location_id=row.location.id,
+                location_code=row.location.code,
+                location_name=row.location.name,
+                warehouse_id=row.location.warehouse_id,
+                warehouse_name=row.location.warehouse.name if row.location.warehouse else None,
+                path=_location_path(row.location),
+                quantity=row.quantity,
+            )
+        )
+
+    result = []
+    for product in products:
+        read = ProductRead.model_validate(product)
+        read.stock_locations = stock_by_product.get(product.id, [])
+        result.append(read)
+    return result
 
 
 @router.post("", response_model=ProductRead, status_code=201)
@@ -116,11 +149,13 @@ def confirm_delete_product(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Password-gated deletion. A product with no stock history is removed
-    outright; one that does have history (stock in/out, adjustments,
-    transfers) is archived instead - is_active is set to False so it drops
-    out of the normal catalog, but its rows and every InventoryTransaction
-    that references it are left completely intact."""
+    """Password-gated deletion. A product with no stock history and no live
+    stock is removed outright; one that has either - any past transaction,
+    or stock still sitting at an active location right now (e.g. it was
+    created with an initial quantity but never moved, so there's no
+    transaction to find) - is archived instead: is_active is set to False so
+    it drops out of the normal catalog, but its rows and every
+    InventoryTransaction that references it are left completely intact."""
     product = db.scalar(select(Product).where(Product.id == product_id))
     if not product:
         raise HTTPException(404, "Product not found")
@@ -133,8 +168,14 @@ def confirm_delete_product(
         # as a normal in-modal error instead, not sign the admin out.
         raise HTTPException(400, "Incorrect password")
 
-    has_history = db.scalar(
-        select(InventoryTransaction.id).where(InventoryTransaction.product_id == product_id).limit(1)
+    has_history = bool(
+        db.scalar(select(InventoryTransaction.id).where(InventoryTransaction.product_id == product_id).limit(1))
+        or db.scalar(
+            select(ProductStock.id)
+            .join(Location, Location.id == ProductStock.location_id)
+            .where(ProductStock.product_id == product_id, Location.is_active.is_(True), ProductStock.quantity > 0)
+            .limit(1)
+        )
     )
     if has_history:
         product.is_active = False
@@ -178,7 +219,8 @@ def get_product_stock_by_location(
 
     rows = db.scalars(
         select(ProductStock)
-        .where(ProductStock.product_id == product_id, ProductStock.quantity > 0)
+        .join(Location, Location.id == ProductStock.location_id)
+        .where(ProductStock.product_id == product_id, Location.is_active.is_(True), ProductStock.quantity > 0)
         .order_by(ProductStock.location_id)
     ).all()
     return [

@@ -1,9 +1,10 @@
 import React from 'react';
-import { ArrowLeft, Layers, Plus } from 'lucide-react';
+import { ArrowLeft, Layers, Plus, Trash2 } from 'lucide-react';
 import { api, Location, LocationStock } from '../api';
 import { SkeletonRows } from './Skeleton';
 import AreaIcon from './AreaIcon';
 import RackPanel from './RackPanel';
+import RemoveLocationConfirm from './RemoveLocationConfirm';
 import { showToast } from './Toast';
 
 const GRID_COLS = 4;
@@ -61,6 +62,9 @@ export default function WarehouseLayout({
   const [savingArea, setSavingArea] = React.useState(false);
 
   const [dragOverCell, setDragOverCell] = React.useState<string | null>(null);
+
+  const [removingArea, setRemovingArea] = React.useState(false);
+  const [confirmingRemoveArea, setConfirmingRemoveArea] = React.useState(false);
 
   async function load() {
     const [locs, stock] = await Promise.all([
@@ -176,6 +180,33 @@ export default function WarehouseLayout({
       await refresh();
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Failed to move rack', 'error');
+    }
+  }
+
+  async function removeArea(force: boolean) {
+    if (!currentArea) return;
+    setRemovingArea(true);
+    try {
+      await api(
+        `/locations/${currentArea.id}`,
+        { method: 'PATCH', body: JSON.stringify({ is_active: false, force }) },
+        token,
+      );
+      showToast(force ? 'Area removed and its stock cleared.' : 'Area removed.');
+      setConfirmingRemoveArea(false);
+      setAreaId(null);
+      await refresh();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Failed to remove area', 'error');
+      setRemovingArea(false);
+    }
+  }
+
+  function handleRemoveAreaClick(stats: { products: number }) {
+    if (stats.products > 0) {
+      setConfirmingRemoveArea(true);
+    } else {
+      removeArea(false);
     }
   }
 
@@ -324,6 +355,27 @@ export default function WarehouseLayout({
             );
           })}
         </div>
+
+        {canManage && (
+          <div className="danger-zone" style={{ marginTop: 24 }}>
+            <h4>Danger Zone</h4>
+            <button className="danger" onClick={() => handleRemoveAreaClick(stats)} disabled={removingArea}>
+              <Trash2 size={14} /> {removingArea ? 'Removing...' : 'Remove Area'}
+            </button>
+          </div>
+        )}
+
+        {confirmingRemoveArea && (
+          <RemoveLocationConfirm
+            title="Remove Area?"
+            targetName={currentArea.name}
+            productCount={stats.products}
+            totalUnits={stats.units}
+            confirmLabel="Remove Anyway"
+            onCancel={() => setConfirmingRemoveArea(false)}
+            onConfirm={() => removeArea(true)}
+          />
+        )}
 
         {selectedRackId &&
           (() => {
