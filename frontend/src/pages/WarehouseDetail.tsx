@@ -1,6 +1,13 @@
 import React from 'react';
-import { Boxes, Layers, Package, Trash2, Warehouse as WarehouseIcon } from 'lucide-react';
-import { api, confirmDeleteWarehouse, resolveImageUrl, User, WarehouseDetail as WarehouseDetailType } from '../api';
+import { ArchiveRestore, Boxes, Layers, Package, Trash2, Warehouse as WarehouseIcon } from 'lucide-react';
+import {
+  api,
+  confirmDeleteWarehouse,
+  resolveImageUrl,
+  unarchiveWarehouse,
+  User,
+  WarehouseDetail as WarehouseDetailType,
+} from '../api';
 import WarehouseLayout from '../components/WarehouseLayout';
 import PasswordConfirmModal from '../components/PasswordConfirmModal';
 import ImageUpload from '../components/ImageUpload';
@@ -29,6 +36,7 @@ export default function WarehouseDetail({
   const [savingWarehouse, setSavingWarehouse] = React.useState(false);
   const [togglingWarehouse, setTogglingWarehouse] = React.useState(false);
   const [confirmingDelete, setConfirmingDelete] = React.useState(false);
+  const [unarchiving, setUnarchiving] = React.useState(false);
 
   const canManage = user.role === 'company_admin' || user.role === 'manager';
   const canDelete = user.role === 'super_admin' || user.role === 'company_admin';
@@ -105,6 +113,21 @@ export default function WarehouseDetail({
     onBack();
   }
 
+  async function handleUnarchive() {
+    if (!warehouse) return;
+    setUnarchiving(true);
+    try {
+      await unarchiveWarehouse(warehouseId, token);
+      showToast(`"${warehouse.name}" restored to Warehouses & Locations.`);
+      await load();
+      onChanged();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Failed to restore warehouse', 'error');
+    } finally {
+      setUnarchiving(false);
+    }
+  }
+
   if (!warehouse) {
     return (
       <section className="card">
@@ -132,7 +155,7 @@ export default function WarehouseDetail({
             <h2 style={{ margin: 0 }}>
               {warehouse.name}{' '}
               <span className={warehouse.is_active ? 'badge badge-active' : 'badge badge-inactive'}>
-                {warehouse.is_active ? 'Active' : 'Inactive'}
+                {warehouse.is_archived ? 'Archived' : warehouse.is_active ? 'Active' : 'Inactive'}
               </span>
             </h2>
             <p style={{ color: 'var(--text-muted)', margin: '4px 0 0' }}>{warehouse.code}</p>
@@ -141,13 +164,27 @@ export default function WarehouseDetail({
           </div>
         </div>
 
-        {canManage && !editingWarehouse && (
+        {canManage && !editingWarehouse && !warehouse.is_archived && (
           <div className="inline-form">
             <button onClick={startEditWarehouse}>Edit Warehouse</button>
             <button disabled={togglingWarehouse} onClick={toggleWarehouseActive}>
               {togglingWarehouse ? 'Saving...' : warehouse.is_active ? 'Deactivate Warehouse' : 'Activate Warehouse'}
             </button>
           </div>
+        )}
+
+        {canDelete && warehouse.is_archived && (
+          <div className="inline-form">
+            <button disabled={unarchiving} onClick={handleUnarchive}>
+              <ArchiveRestore size={14} /> {unarchiving ? 'Restoring...' : 'Unarchive Warehouse'}
+            </button>
+          </div>
+        )}
+        {warehouse.is_archived && (
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
+            This warehouse is archived - it's kept out of Warehouses &amp; Locations because it has inventory
+            history that can't be deleted. Unarchive it to manage it again.
+          </p>
         )}
 
         {editingWarehouse && (
@@ -227,10 +264,10 @@ export default function WarehouseDetail({
         <WarehouseLayout token={token} warehouseId={warehouseId} canManage={canManage} onChanged={onChanged} />
       </section>
 
-      {canDelete && (
+      {canDelete && !warehouse.is_archived && (
         <section className="card">
           <div className="danger-zone" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
-            <h4>Danger Zone</h4>
+            <h4>Danger Zone — {warehouse.name} (Warehouse)</h4>
             <button className="danger" onClick={() => setConfirmingDelete(true)}>
               <Trash2 size={14} /> Delete Warehouse
             </button>
@@ -242,7 +279,7 @@ export default function WarehouseDetail({
         <PasswordConfirmModal
           title="Delete Warehouse?"
           targetName={warehouse.name}
-          explanation="This action will remove the warehouse from your company. If it still has inventory history, it will be deactivated instead so that history is never lost."
+          explanation="This action will remove the warehouse from your company. If it still has inventory history, it will be archived instead so that history is never lost - archived warehouses are moved out of Warehouses & Locations into Settings."
           confirmLabel="Delete Warehouse"
           onCancel={() => setConfirmingDelete(false)}
           onConfirm={handleDeleteConfirm}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowDown, ArrowUp, Layers, Pencil, Plus, Trash2 } from 'lucide-react';
-import { api, Location, LocationStock } from '../api';
+import { api, Location, LocationStock, transferOutLocation } from '../api';
 import Drawer from './Drawer';
 import RemoveLocationConfirm from './RemoveLocationConfirm';
 import { showToast } from './Toast';
@@ -17,6 +17,7 @@ function ShelfRow({
   canManage,
   isFirst,
   isLast,
+  otherRacks,
   onMove,
   onSaved,
   onRemoved,
@@ -27,6 +28,7 @@ function ShelfRow({
   canManage: boolean;
   isFirst: boolean;
   isLast: boolean;
+  otherRacks: Location[];
   onMove: (direction: 'up' | 'down') => void;
   onSaved: () => void;
   onRemoved: () => void;
@@ -81,6 +83,12 @@ function ShelfRow({
     } else {
       remove(false);
     }
+  }
+
+  async function transferThenRemove(toLocationId: number) {
+    const result = await transferOutLocation(shelf.id, toLocationId, token);
+    showToast(result.message);
+    await remove(false);
   }
 
   if (editing) {
@@ -146,8 +154,10 @@ function ShelfRow({
           productCount={stock?.product_count ?? 0}
           totalUnits={stock?.total_units ?? 0}
           confirmLabel="Remove Anyway"
+          destinationRacks={otherRacks}
           onCancel={() => setConfirmingRemove(false)}
           onConfirm={() => remove(true)}
+          onTransfer={transferThenRemove}
         />
       )}
     </div>
@@ -158,6 +168,7 @@ export default function RackPanel({
   token,
   rack,
   shelves,
+  allLocations,
   stockByLocation,
   canManage,
   onClose,
@@ -166,6 +177,7 @@ export default function RackPanel({
   token: string;
   rack: Location;
   shelves: Location[];
+  allLocations: Location[];
   stockByLocation: Map<number, LocationStock>;
   canManage: boolean;
   onClose: () => void;
@@ -194,6 +206,11 @@ export default function RackPanel({
     },
     { products: rackDirectStock?.product_count ?? 0, units: rackDirectStock?.total_units ?? 0 },
   );
+
+  // A shelf's destination can be any active rack (including this one, its
+  // own parent) - the rack being removed excludes itself from its own list.
+  const otherRacksForShelves = allLocations.filter(l => l.location_type === 'rack' && l.is_active);
+  const otherRacksForRack = otherRacksForShelves.filter(l => l.id !== rack.id);
 
   async function saveRack(event: React.FormEvent) {
     event.preventDefault();
@@ -280,6 +297,12 @@ export default function RackPanel({
     }
   }
 
+  async function transferRackThenRemove(toLocationId: number) {
+    const result = await transferOutLocation(rack.id, toLocationId, token);
+    showToast(result.message);
+    await removeRack(false);
+  }
+
   return (
     <Drawer onClose={onClose}>
       <div className="rack-panel-header">
@@ -350,6 +373,7 @@ export default function RackPanel({
                 canManage={canManage}
                 isFirst={index === 0}
                 isLast={index === shelves.length - 1}
+                otherRacks={otherRacksForShelves}
                 onMove={direction => moveShelf(shelf, direction)}
                 onSaved={onChanged}
                 onRemoved={onChanged}
@@ -364,7 +388,7 @@ export default function RackPanel({
 
       {canManage && (
         <div className="drawer-section danger-zone">
-          <h4>Danger Zone</h4>
+          <h4>Danger Zone — {rack.name} (Rack)</h4>
           <button className="danger" onClick={handleRemoveRackClick} disabled={removingRack}>
             <Trash2 size={14} /> {removingRack ? 'Removing...' : 'Remove Rack'}
           </button>
@@ -378,8 +402,10 @@ export default function RackPanel({
           productCount={rackStock.products}
           totalUnits={rackStock.units}
           confirmLabel="Remove Anyway"
+          destinationRacks={otherRacksForRack}
           onCancel={() => setConfirmingRemoveRack(false)}
           onConfirm={() => removeRack(true)}
+          onTransfer={transferRackThenRemove}
         />
       )}
     </Drawer>

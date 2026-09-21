@@ -282,7 +282,7 @@ export default function ProductDrawer({
       {/* ---------- Danger Zone ---------- */}
       {canDelete && (
         <div className="drawer-section danger-zone">
-          <h4>Danger Zone</h4>
+          <h4>Danger Zone — {product.name} (Product)</h4>
           <button className="danger" onClick={() => setConfirmingDelete(true)}>
             <Trash2 size={14} /> Delete Product
           </button>

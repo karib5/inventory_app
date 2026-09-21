@@ -28,6 +28,7 @@ class WarehouseRead(BaseModel):
     address: str | None
     image_url: str | None
     is_active: bool
+    is_archived: bool
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 

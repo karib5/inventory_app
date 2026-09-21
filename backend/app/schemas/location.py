@@ -52,3 +52,13 @@ class LocationStock(BaseModel):
     location_id: int
     product_count: int
     total_units: int
+
+
+class TransferOutRequest(BaseModel):
+    to_location_id: int
+
+
+class TransferOutResult(BaseModel):
+    product_count: int
+    total_units: int
+    message: str

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowLeft, Layers, Plus, Trash2 } from 'lucide-react';
-import { api, Location, LocationStock } from '../api';
+import { api, Location, LocationStock, transferOutLocation } from '../api';
 import { SkeletonRows } from './Skeleton';
 import AreaIcon from './AreaIcon';
 import RackPanel from './RackPanel';
@@ -92,6 +92,17 @@ export default function WarehouseLayout({
 
   function racksOf(parentId: number) {
     return locations.filter(l => l.parent_id === parentId && l.location_type === 'rack');
+  }
+  function subtreeIds(rootId: number): number[] {
+    const ids = [rootId];
+    let frontier = [rootId];
+    while (frontier.length) {
+      const children = locations.filter(l => frontier.includes(l.parent_id ?? -1)).map(l => l.id);
+      if (!children.length) break;
+      ids.push(...children);
+      frontier = children;
+    }
+    return ids;
   }
   function shelvesOf(parentId: number) {
     return locations
@@ -200,6 +211,13 @@ export default function WarehouseLayout({
       showToast(e instanceof Error ? e.message : 'Failed to remove area', 'error');
       setRemovingArea(false);
     }
+  }
+
+  async function transferAreaThenRemove(toLocationId: number) {
+    if (!currentArea) return;
+    const result = await transferOutLocation(currentArea.id, toLocationId, token);
+    showToast(result.message);
+    await removeArea(false);
   }
 
   function handleRemoveAreaClick(stats: { products: number }) {
@@ -358,24 +376,33 @@ export default function WarehouseLayout({
 
         {canManage && (
           <div className="danger-zone" style={{ marginTop: 24 }}>
-            <h4>Danger Zone</h4>
+            <h4>Danger Zone — {currentArea.name} (Area)</h4>
             <button className="danger" onClick={() => handleRemoveAreaClick(stats)} disabled={removingArea}>
               <Trash2 size={14} /> {removingArea ? 'Removing...' : 'Remove Area'}
             </button>
           </div>
         )}
 
-        {confirmingRemoveArea && (
-          <RemoveLocationConfirm
-            title="Remove Area?"
-            targetName={currentArea.name}
-            productCount={stats.products}
-            totalUnits={stats.units}
-            confirmLabel="Remove Anyway"
-            onCancel={() => setConfirmingRemoveArea(false)}
-            onConfirm={() => removeArea(true)}
-          />
-        )}
+        {confirmingRemoveArea &&
+          (() => {
+            const excluded = subtreeIds(currentArea.id);
+            const destinationRacks = locations.filter(
+              l => l.location_type === 'rack' && l.is_active && !excluded.includes(l.id),
+            );
+            return (
+              <RemoveLocationConfirm
+                title="Remove Area?"
+                targetName={currentArea.name}
+                productCount={stats.products}
+                totalUnits={stats.units}
+                confirmLabel="Remove Anyway"
+                destinationRacks={destinationRacks}
+                onCancel={() => setConfirmingRemoveArea(false)}
+                onConfirm={() => removeArea(true)}
+                onTransfer={transferAreaThenRemove}
+              />
+            );
+          })()}
 
         {selectedRackId &&
           (() => {
@@ -386,6 +413,7 @@ export default function WarehouseLayout({
                 token={token}
                 rack={rack}
                 shelves={shelvesOf(rack.id)}
+                allLocations={locations}
                 stockByLocation={stockByLocation}
                 canManage={canManage}
                 onClose={() => setSelectedRackId(null)}
