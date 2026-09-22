@@ -16,6 +16,18 @@ class Settings(BaseSettings):
     seed_admin_email: str = "admin@example.com"
     seed_admin_password: str = "ChangeMe123!"
 
+    # Outbound email for the forgot-password flow. All optional: when unset,
+    # app.core.email logs the message instead of sending it, so the flow is
+    # fully testable without real credentials. Set these (any standard SMTP
+    # provider - Postfix, SES, SendGrid, Mailgun, etc.) to send for real.
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    smtp_from_address: str = "no-reply@inventory.local"
+    smtp_from_name: str = "Inventory"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @field_validator("database_url")

@@ -160,7 +160,7 @@ export default function Settings({
           onChanged={onChanged}
           onOpen={setOpenWarehouseId}
         />
-        <p style={{ color: '#687386' }}>{locations.length} locations across all warehouses.</p>
+        <p style={{ color: 'var(--text-muted)' }}>{locations.length} locations across all warehouses.</p>
       </>
     );
   }
@@ -168,7 +168,7 @@ export default function Settings({
   return (
     <>
       <h1 style={{ marginBottom: 4 }}>Settings</h1>
-      <p style={{ color: '#687386', marginTop: 0, marginBottom: 20 }}>
+      <p style={{ color: 'var(--text-muted)', marginTop: 0, marginBottom: 20 }}>
         Administrative configuration for your company.
       </p>
       <div className="tile-grid">

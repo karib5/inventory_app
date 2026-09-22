@@ -3,9 +3,17 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_company_user
+from app.core.security import verify_password
 from app.db.session import get_db
 from app.models import InventoryTransaction, Location, LocationType, Product, ProductStock, Role, TransactionType, User, Warehouse
-from app.schemas.location import LocationCreate, LocationRead, LocationUpdate, TransferOutRequest, TransferOutResult
+from app.schemas.location import (
+    LocationCreate,
+    LocationRead,
+    LocationRemoveRequest,
+    LocationUpdate,
+    TransferOutRequest,
+    TransferOutResult,
+)
 from app.services.inventory import transfer_stock
 
 router = APIRouter(prefix="/locations", tags=["Locations"])
@@ -161,28 +169,11 @@ def update_location(
         raise HTTPException(404, "Location not found")
 
     updates = payload.model_dump(exclude_unset=True)
-    force = updates.pop("force", False)
     warehouse_id = updates.get("warehouse_id", location.warehouse_id)
     parent_id = updates.get("parent_id", location.parent_id)
     if parent_id == location_id:
         raise HTTPException(400, "A location cannot be its own parent")
     parent = _validate_hierarchy(db, current_user.company_id, warehouse_id, parent_id)
-
-    descendant_ids: list[int] = []
-    if updates.get("is_active") is False and location.is_active:
-        subtree_ids = _location_and_descendant_ids(db, location.id)
-        descendant_ids = subtree_ids[1:]
-        has_stock = db.scalar(
-            select(ProductStock.id).where(ProductStock.location_id.in_(subtree_ids), ProductStock.quantity > 0).limit(1)
-        )
-        if has_stock:
-            if not force:
-                raise HTTPException(
-                    400,
-                    "This location (or a shelf inside it) still holds stock. Move it first, or remove this "
-                    "location anyway to clear that stock.",
-                )
-            _clear_subtree_stock(db, current_user, subtree_ids, location.name)
 
     effective_type = updates.get("location_type", location.location_type)
     if effective_type == LocationType.RACK and (parent_id != location.parent_id or "location_type" in updates):
@@ -196,6 +187,57 @@ def update_location(
     for field, value in updates.items():
         setattr(location, field, value)
 
+    db.commit()
+    db.refresh(location)
+    return location
+
+
+@router.post("/{location_id}/confirm-remove", response_model=LocationRead)
+def confirm_remove_location(
+    location_id: int,
+    payload: LocationRemoveRequest,
+    current_user: User = Depends(require_company_user),
+    db: Session = Depends(get_db),
+):
+    """Password-gated removal, mirroring the warehouse/product delete flows:
+    there is no way to reactivate a location afterwards (unlike a
+    warehouse, which can be), so to the user this IS delete, and demands
+    the same re-entered-password confirmation - not just the existing
+    admin/manager role check, which alone let anyone with the page open
+    remove a rack/shelf/area with one click and no confirmation at all."""
+    if current_user.role not in (Role.COMPANY_ADMIN, Role.MANAGER):
+        raise HTTPException(403, "Only company admins and managers can remove locations")
+
+    location = db.scalar(
+        select(Location).where(Location.id == location_id, Location.company_id == current_user.company_id)
+    )
+    if not location:
+        raise HTTPException(404, "Location not found")
+    if not location.is_active:
+        raise HTTPException(400, "This location has already been removed")
+
+    if not verify_password(payload.password, current_user.password_hash):
+        # 400, not 401: the frontend's global API wrapper treats any 401 on a
+        # token-bearing request as "your session expired" and force-logs the
+        # user out - a wrong confirmation password must surface as a normal
+        # in-modal error instead, not sign the admin out.
+        raise HTTPException(400, "Incorrect password")
+
+    subtree_ids = _location_and_descendant_ids(db, location.id)
+    descendant_ids = subtree_ids[1:]
+    has_stock = db.scalar(
+        select(ProductStock.id).where(ProductStock.location_id.in_(subtree_ids), ProductStock.quantity > 0).limit(1)
+    )
+    if has_stock:
+        if not payload.force:
+            raise HTTPException(
+                400,
+                "This location (or a shelf inside it) still holds stock. Move it first, or remove this "
+                "location anyway to clear that stock.",
+            )
+        _clear_subtree_stock(db, current_user, subtree_ids, location.name)
+
+    location.is_active = False
     if descendant_ids:
         # Removing a rack (or area) also removes what's inside it - a shelf
         # left behind, still "active", under a parent that no longer shows

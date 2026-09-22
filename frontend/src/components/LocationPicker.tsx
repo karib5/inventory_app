@@ -208,7 +208,7 @@ export default function LocationPicker({
                   ? `All ${currentDirectStock} unit${currentDirectStock === 1 ? '' : 's'} here are stored directly on this one, not split into anything inside it - the selection above will be used.`
                   : pathNodes.length
                     ? 'Nothing stored inside this one yet - the selection above will be used.'
-                    : 'This warehouse has no storage areas set up yet.'}
+                    : 'This warehouse has no storage zones set up yet.'}
               </p>
             )}
 

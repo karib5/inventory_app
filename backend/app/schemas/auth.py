@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models import Role
 
@@ -34,4 +34,18 @@ class PasswordConfirm(BaseModel):
 
 class DeleteResult(BaseModel):
     result: str  # "deleted" | "archived"
+    message: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    code: str
+    new_password: str = Field(min_length=8)
+
+
+class AuthMessageResult(BaseModel):
     message: str

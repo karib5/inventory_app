@@ -1,4 +1,7 @@
 :root{
+  /* The sidebar/auth brand panel are always dark regardless of app theme
+     (a fixed brand column, like Linear/Vercel), so navy-* never changes
+     between light and dark mode. */
   --navy:#0f1b2d;
   --navy-light:#1a2942;
   --navy-border:#26364f;
@@ -6,20 +9,64 @@
   --card:#ffffff;
   --border:#e2e6ec;
   --accent:#2563eb;
+  --accent-rgb:37,99,235;
   --accent-dark:#1d4ed8;
   --accent-soft:#eaf1ff;
+  --accent-soft-hover:#dde9ff;
   --success:#15803d;
   --success-soft:#e3f6e9;
   --warning:#b45309;
   --warning-soft:#fef3d9;
   --danger:#b91c1c;
+  --danger-rgb:185,28,28;
   --danger-soft:#fdeaea;
   --text:#1c2536;
   --text-muted:#64748b;
+  /* Muted/hover surfaces and placeholder tones - reused everywhere a color
+     was previously hardcoded (button hovers, thumbnail backgrounds,
+     skeleton shimmer, empty-state icons) so dark mode can retint them too. */
+  --surface-hover:#f8fafc;
+  --surface-muted:#f1f4f8;
+  --surface-gradient-a:#eef1f6;
+  --surface-gradient-b:#dbe3ee;
+  --icon-muted:#9aa5b8;
+  --skeleton-a:#e9edf3;
+  --skeleton-b:#f2f4f8;
   --radius:10px;
   --radius-lg:14px;
   --shadow:0 1px 2px #0f1b2d0d,0 4px 12px #0f1b2d0f;
 }
+
+:root[data-theme="dark"]{
+  --bg:#0b0f17;
+  --card:#161c29;
+  --border:#2a3346;
+  --accent:#4c8dff;
+  --accent-rgb:76,141,255;
+  --accent-dark:#2f6fe0;
+  --accent-soft:#17233d;
+  --accent-soft-hover:#1e2c4c;
+  --success:#4ade80;
+  --success-soft:#15301f;
+  --warning:#fbbf24;
+  --warning-soft:#3a2c11;
+  --danger:#f87171;
+  --danger-rgb:248,113,113;
+  --danger-soft:#3a1a1a;
+  --text:#e7ebf3;
+  --text-muted:#93a0b8;
+  --surface-hover:#1c2333;
+  --surface-muted:#1a2130;
+  --surface-gradient-a:#161c29;
+  --surface-gradient-b:#212b40;
+  --icon-muted:#57647c;
+  --skeleton-a:#1b2333;
+  --skeleton-b:#232d42;
+  --shadow:0 1px 2px #00000040,0 4px 16px #00000055;
+}
+
+body{transition:background-color .15s ease,color .15s ease}
+@media(prefers-reduced-motion:reduce){body{transition:none}}
 
 *{box-sizing:border-box}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
@@ -45,56 +92,73 @@ table{width:100%;border-collapse:collapse;margin-top:12px}
 th,td{text-align:left;padding:12px;border-bottom:1px solid var(--border);vertical-align:middle}
 th{color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
 
-button{padding:10px 16px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:white;font-size:14px;font-weight:600;color:var(--text);display:inline-flex;align-items:center;gap:8px;transition:background .12s,border-color .12s}
-button:hover{background:#f8fafc}
+button{padding:10px 16px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:var(--card);font-size:14px;font-weight:600;color:var(--text);display:inline-flex;align-items:center;gap:8px;transition:background .12s,border-color .12s}
+button:hover{background:var(--surface-hover)}
 button:disabled{opacity:.55;cursor:not-allowed}
 button.primary{background:var(--accent);border-color:var(--accent);color:white}
 button.primary:hover{background:var(--accent-dark);border-color:var(--accent-dark)}
 button.danger{background:var(--danger-soft);border-color:var(--danger-soft);color:var(--danger)}
 button.ghost{background:transparent;border-color:transparent;padding:8px 10px}
-button.ghost:hover{background:#f1f4f8}
+button.ghost:hover{background:var(--surface-muted)}
 button.icon-btn{padding:9px;border-radius:8px}
 
 /* ---------- auth / login page ---------- */
 .auth-page{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr}
-.auth-brand{position:relative;background:linear-gradient(160deg,var(--navy),#152238 60%,var(--navy-light));color:#fff;padding:56px;display:flex;align-items:center;overflow:hidden}
+.auth-brand{position:relative;background:var(--navy);color:#fff;padding:64px 56px;display:flex;align-items:flex-start;overflow:hidden}
+.warehouse-scene{position:absolute;inset:0;width:100%;height:100%;display:block}
 .auth-brand-grid{position:absolute;inset:0;background-image:linear-gradient(#ffffff12 1px,transparent 1px),linear-gradient(90deg,#ffffff12 1px,transparent 1px);background-size:42px 42px;mask-image:radial-gradient(ellipse 70% 60% at 30% 30%,#000 40%,transparent 85%)}
-.auth-brand-content{position:relative;max-width:440px}
-.auth-logo{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:16px;color:#fff;margin-bottom:48px}
+.auth-brand-scrim{position:absolute;inset:0;background:linear-gradient(180deg,#060b16d9 0%,#060b1666 38%,#060b1600 62%);pointer-events:none}
+.auth-brand-content{position:relative;z-index:2;max-width:440px}
+.auth-logo{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:16px;color:#fff;margin-bottom:32px}
 .auth-logo svg{color:var(--accent)}
-.auth-brand-content h1{font-size:30px;line-height:1.25;margin:0 0 14px;letter-spacing:-0.01em}
-.auth-brand-content p{color:#b6c0d4;font-size:15px;line-height:1.6;margin:0 0 32px}
-.auth-features{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
-.auth-features li{display:flex;align-items:center;gap:12px;color:#dbe2ef;font-size:14px;font-weight:600}
-.auth-feature-icon{width:30px;height:30px;border-radius:8px;background:#ffffff14;color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.auth-brand-content h1{font-size:30px;line-height:1.25;margin:0 0 14px;letter-spacing:-0.01em;text-shadow:0 2px 16px #00000060}
+.auth-brand-content p{color:#dbe2ef;font-size:15px;line-height:1.6;margin:0;text-shadow:0 2px 12px #00000060}
 
-.auth-form-side{display:flex;align-items:center;justify-content:center;padding:40px 24px;background:var(--bg)}
-.auth-card{width:min(400px,100%);background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:36px 32px}
+.auth-form-side{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;background:var(--bg);overflow:hidden}
+.auth-form-side::before{content:'';position:absolute;width:520px;height:520px;background:radial-gradient(circle,var(--accent-soft) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);opacity:.7;pointer-events:none}
+.theme-toggle-login{position:absolute;top:20px;right:20px;padding:9px;border-radius:8px;z-index:2}
+.auth-route-icon{position:absolute;top:78px;right:36px;z-index:0;width:140px;height:70px}
+.auth-route-truck{position:absolute;top:-4px;right:2px;color:var(--accent)}
+.auth-corner-icon{position:absolute;bottom:0;z-index:0;opacity:.5}
+.auth-corner-left{left:0}
+.auth-corner-right{right:0}
+@media(max-width:900px){.auth-route-icon,.auth-corner-icon{display:none}}
+.auth-card{position:relative;z-index:1;width:min(400px,100%);background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:36px 32px}
 .auth-card-logo{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
 .auth-card h2{margin:0 0 4px;font-size:22px}
 .auth-subtitle{color:var(--text-muted);margin:0 0 22px;font-size:14px}
 .auth-card .field{margin-bottom:16px}
 .auth-card .field label{display:block;font-weight:600;margin-bottom:6px;font-size:13.5px}
 .auth-card .field input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:15px;background:var(--card);color:var(--text)}
+.field-label-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.field-label-row label{margin-bottom:0}
+.auth-forgot-link{padding:0;height:auto;min-width:0;background:transparent;color:var(--accent);font-size:12.5px;font-weight:600}
+.auth-forgot-link:hover{background:transparent;text-decoration:underline}
+.auth-back-link{padding:0;height:auto;min-width:0;background:transparent;color:var(--text-muted);font-size:12.5px;font-weight:600;gap:5px;margin-bottom:18px}
+.auth-back-link:hover{background:transparent;color:var(--text)}
+.auth-resend-link{width:100%;justify-content:center;padding:8px;height:auto;background:transparent;color:var(--accent);font-size:13px;font-weight:600;margin-top:10px}
+.auth-resend-link:hover{background:transparent;text-decoration:underline}
+.auth-resend-link:disabled{opacity:.6;cursor:default}
 .password-field{position:relative}
 .password-field input{padding-right:42px}
 .password-toggle{position:absolute;right:2px;top:2px;bottom:2px;width:38px;padding:0;border:0;background:transparent;color:var(--text-muted);justify-content:center;border-radius:8px}
-.password-toggle:hover{background:#f1f4f8;color:var(--text)}
+.password-toggle:hover{background:var(--surface-muted);color:var(--text)}
 .auth-submit{width:100%;justify-content:center;margin-top:4px;padding:12px 16px}
 .auth-card .error{margin-bottom:16px}
 .auth-card .session-banner{margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.auth-form-footer{position:relative;z-index:1;display:flex;align-items:center;gap:6px;margin-top:20px;color:var(--text-muted);font-size:12.5px}
 
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{animation:spin .8s linear infinite}
 
 /* ---------- skeleton loaders ---------- */
-.skeleton{display:inline-block;background:linear-gradient(90deg,#e9edf3 25%,#f2f4f8 37%,#e9edf3 63%);background-size:400% 100%;animation:skeleton-shimmer 1.4s ease infinite;border-radius:6px}
+.skeleton{display:inline-block;background:linear-gradient(90deg,var(--skeleton-a) 25%,var(--skeleton-b) 37%,var(--skeleton-a) 63%);background-size:400% 100%;animation:skeleton-shimmer 1.4s ease infinite;border-radius:6px}
 .skeleton-circle{width:40px;height:40px;border-radius:10px;flex-shrink:0}
 .skeleton-thumb{width:40px;height:40px;border-radius:8px;flex-shrink:0}
 .skeleton-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
 .skeleton-row:last-child{border-bottom:none}
 @keyframes skeleton-shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
-@media(prefers-reduced-motion:reduce){.skeleton{animation:none;background:#eef1f6}}
+@media(prefers-reduced-motion:reduce){.skeleton{animation:none;background:var(--surface-muted)}}
 
 /* ---------- toast notifications ---------- */
 .toast-host{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:10px;z-index:300;max-width:min(360px,calc(100vw - 40px))}
@@ -142,7 +206,11 @@ button.icon-btn{padding:9px;border-radius:8px}
 .sidebar-collapse-toggle{background:transparent;border-color:transparent;color:#8b96aa;font-size:12.5px;padding:8px 12px;justify-content:flex-start}
 .sidebar-collapse-toggle:hover{background:var(--navy-light);color:#fff}
 .sidebar-user{display:flex;align-items:center;gap:10px;padding:4px 4px 8px}
-.sidebar-user-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent-dark);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+/* Fixed colors, not the theme-swapped --accent-soft/--accent-dark: this
+   circle always sits on the permanently-dark navy sidebar, in both app
+   themes, so it must not go dark-on-dark when --accent-soft flips for
+   dark mode. */
+.sidebar-user-avatar{width:32px;height:32px;border-radius:50%;background:#22345c;color:#9dc4ff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
 .sidebar-user-info{overflow:hidden}
 .sidebar-user-info b{display:block;color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar-user-info span{display:block;font-size:11.5px;color:#9aa5b8;text-transform:capitalize}
@@ -154,7 +222,7 @@ button.icon-btn{padding:9px;border-radius:8px}
 .topbar{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 24px;height:56px}
 .mobile-nav-toggle{display:none;background:transparent;border-color:transparent;padding:6px}
 .search-trigger{display:flex;align-items:center;gap:8px;background:var(--bg);border-color:var(--border);color:var(--text-muted);border-radius:8px;padding:8px 14px;white-space:nowrap}
-.search-trigger:hover{background:#e4e9f1;color:var(--text)}
+.search-trigger:hover{background:var(--surface-hover);color:var(--text)}
 .kbd{font-size:11px;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--text-muted)}
 
 /* ---------- greeting / quick actions ---------- */
@@ -163,7 +231,7 @@ button.icon-btn{padding:9px;border-radius:8px}
 .quick-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
 .quick-actions button{flex-direction:column;align-items:center;gap:10px;padding:20px 10px;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:var(--radius-lg);font-weight:700;font-size:13.5px;color:var(--text)}
 .quick-actions button .qa-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent)}
-.quick-actions button:hover{border-color:var(--accent);background:#fbfdff}
+.quick-actions button:hover{border-color:var(--accent);background:var(--surface-hover)}
 .quick-actions button.disabled{opacity:.5;cursor:not-allowed}
 .quick-actions button.disabled:hover{border-color:var(--border);background:var(--card)}
 
@@ -172,7 +240,7 @@ button.icon-btn{padding:9px;border-radius:8px}
 .empty-state h3{color:var(--text);margin-bottom:6px}
 .attention-list{display:flex;flex-direction:column;gap:0}
 .attention-row{display:flex;justify-content:space-between;align-items:center;padding:12px 4px;border-bottom:1px solid var(--border);border-radius:8px;cursor:pointer}
-.attention-row:hover{background:#f8fafc}
+.attention-row:hover{background:var(--surface-hover)}
 .attention-row:last-child{border-bottom:none}
 .attention-row .att-left{display:flex;align-items:center;gap:10px}
 .attention-row .att-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
@@ -182,18 +250,18 @@ button.icon-btn{padding:9px;border-radius:8px}
 .search-box input{width:100%;padding:13px 16px 13px 42px;font-size:15px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
 .search-box svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted)}
 tr.clickable{cursor:pointer}
-tr.clickable:hover{background:#f8fafc}
+tr.clickable:hover{background:var(--surface-hover)}
 
 /* ---------- product/warehouse thumbnails ---------- */
-.thumb{width:40px;height:40px;border-radius:8px;object-fit:contain;border:1px solid var(--border);background:#f1f4f8;flex-shrink:0}
-.thumb-lg{width:96px;height:96px;border-radius:var(--radius);object-fit:contain;border:1px solid var(--border);background:#f1f4f8}
+.thumb{width:40px;height:40px;border-radius:8px;object-fit:contain;border:1px solid var(--border);background:var(--surface-muted);flex-shrink:0}
+.thumb-lg{width:96px;height:96px;border-radius:var(--radius);object-fit:contain;border:1px solid var(--border);background:var(--surface-muted)}
 .thumb-row{display:flex;align-items:center;gap:12px}
-.thumb-placeholder{display:flex;align-items:center;justify-content:center;color:#b7c0cf;background:#f1f4f8}
+.thumb-placeholder{display:flex;align-items:center;justify-content:center;color:var(--icon-muted);background:var(--surface-muted)}
 
 /* ---------- image upload ---------- */
 .image-upload{display:flex;align-items:center;gap:16px}
-.image-upload .preview{width:88px;height:88px;border-radius:var(--radius);object-fit:contain;border:1px solid var(--border);background:#f1f4f8}
-.image-upload .preview-placeholder{width:88px;height:88px;border-radius:var(--radius);border:1px dashed var(--border);background:#f8fafc;display:flex;align-items:center;justify-content:center;color:#b7c0cf}
+.image-upload .preview{width:88px;height:88px;border-radius:var(--radius);object-fit:contain;border:1px solid var(--border);background:var(--surface-muted)}
+.image-upload .preview-placeholder{width:88px;height:88px;border-radius:var(--radius);border:1px dashed var(--border);background:var(--surface-muted);display:flex;align-items:center;justify-content:center;color:var(--icon-muted)}
 .image-upload .actions{display:flex;flex-direction:column;gap:8px}
 .image-upload .hint{color:var(--text-muted);font-size:12px}
 
@@ -239,6 +307,20 @@ tr.clickable:hover{background:#f8fafc}
 .danger-confirm-warning svg{flex-shrink:0;margin-top:1px}
 .danger-confirm-warning p{margin:0;color:var(--text);font-size:13.5px;line-height:1.5}
 .danger-confirm-target{font-weight:700 !important;margin-bottom:4px !important;color:var(--text)}
+
+/* The "transfer instead of clearing" option inside the remove-location
+   confirm dialog was easy to miss as a plain ghost button (transparent
+   background, no border) in both themes - give it a real outline, filled
+   background, and a pulsing red ring so it visibly reads as an actionable
+   button, not label text. */
+button.ghost.transfer-first-btn{background:var(--danger-soft);border:1.5px solid var(--danger);color:var(--danger);font-weight:700;animation:transfer-btn-pulse 1.6s ease-out infinite}
+button.ghost.transfer-first-btn:hover{background:var(--danger-soft);filter:brightness(0.95);animation-play-state:paused}
+@keyframes transfer-btn-pulse{
+  0%{box-shadow:0 0 0 0 rgba(var(--danger-rgb),.5)}
+  70%{box-shadow:0 0 0 8px rgba(var(--danger-rgb),0)}
+  100%{box-shadow:0 0 0 0 rgba(var(--danger-rgb),0)}
+}
+@media(prefers-reduced-motion:reduce){.transfer-first-btn{animation:none}}
 .location-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)}
 .storage-row{align-items:center;gap:10px}
 .storage-path{display:flex;align-items:center;flex-wrap:wrap;gap:4px;color:var(--text);font-size:13.5px}
@@ -270,7 +352,7 @@ tr.clickable:hover{background:#f8fafc}
 .palette{background:var(--card);border-radius:var(--radius-lg);width:min(560px,100%);max-height:70vh;overflow-y:auto;box-shadow:0 20px 60px #00000040}
 .palette input{width:100%;padding:18px;font-size:17px;border:0;border-bottom:1px solid var(--border);border-radius:var(--radius-lg) var(--radius-lg) 0 0}
 .palette-result{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border);cursor:pointer;gap:12px}
-.palette-result:hover,.palette-result.selected{background:#f8fafc}
+.palette-result:hover,.palette-result.selected{background:var(--surface-hover)}
 .palette-result .title{font-weight:600}
 .palette-result .subtitle{color:var(--text-muted);font-size:13px}
 .palette-empty{padding:24px;color:var(--text-muted);text-align:center}
@@ -293,14 +375,14 @@ tr.clickable:hover{background:#f8fafc}
 /* ---------- view toggle (grid / list) ---------- */
 .view-toggle{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:3px}
 .view-toggle button{background:transparent;border-color:transparent;padding:7px 12px;font-size:13px;color:var(--text-muted)}
-.view-toggle button:hover{background:#e4e9f1}
+.view-toggle button:hover{background:var(--surface-hover)}
 .view-toggle button.active{background:var(--card);color:var(--text);box-shadow:0 1px 2px #0f1b2d1a}
 
 /* ---------- product cards (grid view) ---------- */
 .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
 .product-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:border-color .12s,transform .12s}
 .product-card:hover{border-color:var(--accent);transform:translateY(-2px)}
-.product-card-image{display:flex;align-items:center;justify-content:center;padding:18px;background:linear-gradient(135deg,#eef1f6,#dbe3ee)}
+.product-card-image{display:flex;align-items:center;justify-content:center;padding:18px;background:linear-gradient(135deg,var(--surface-gradient-a),var(--surface-gradient-b))}
 .product-card-image .thumb-lg{width:84px;height:84px}
 .product-card-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px}
 .product-card-title{font-weight:700;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -310,14 +392,36 @@ tr.clickable:hover{background:#f8fafc}
 .product-card-stats span{color:var(--text-muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
 .product-card .badge{align-self:flex-start}
 
-/* ---------- warehouse cards ---------- */
-.warehouse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-.warehouse-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
-.warehouse-card .wh-image{width:100%;height:120px;object-fit:contain;background:linear-gradient(135deg,#1a2942,#2563eb22)}
-.warehouse-card .wh-image-placeholder{width:100%;height:120px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#eef1f6,#dbe3ee);color:#9aa5b8}
-.warehouse-card .wh-body{padding:16px;display:flex;flex-direction:column;gap:4px;flex:1}
-.warehouse-card .wh-stats{display:flex;gap:16px;margin:10px 0;font-size:13px;color:var(--text-muted)}
-.warehouse-card .wh-stats strong{color:var(--text);font-size:14px}
+/* ---------- warehouse cards ----------
+   Full-bleed photo by default; name/stats/actions live in a bottom sheet
+   that's translated out of view until hover/focus, then slides up over a
+   blurred scrim. The scrim only covers its own panel, so the top of the
+   photo is never touched, blurred or otherwise. */
+.warehouse-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(max-width:640px){.warehouse-grid{grid-template-columns:1fr}}
+.warehouse-card{position:relative;height:260px;border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden}
+.warehouse-card-archived{opacity:.85}
+.warehouse-card .wh-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.warehouse-card .wh-image-placeholder{position:absolute;inset:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--surface-gradient-a),var(--surface-gradient-b));color:var(--icon-muted)}
+
+.wh-overlay{position:absolute;left:0;right:0;bottom:0;padding:16px;display:flex;flex-direction:column;gap:6px;color:#fff;background:linear-gradient(to top,rgba(6,10,18,.92) 0%,rgba(6,10,18,.75) 55%,rgba(6,10,18,0) 100%);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transform:translateY(100%);transition:transform .22s ease}
+.warehouse-card:hover .wh-overlay,.warehouse-card:focus-within .wh-overlay{transform:translateY(0)}
+.wh-overlay-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.wh-overlay-name{display:flex;flex-direction:column;gap:1px;min-width:0}
+.wh-overlay-name strong{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wh-overlay-name span{font-size:12.5px;color:#c4cddc}
+.wh-overlay-address{margin:0;font-size:12.5px;color:#c4cddc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wh-overlay .wh-stats{display:flex;gap:16px;margin:4px 0 2px;font-size:13px;color:#c4cddc}
+.wh-overlay .wh-stats strong{color:#fff;font-size:14px}
+.wh-overlay-actions{display:flex;gap:8px;margin-top:8px}
+.wh-overlay-actions button:not(.primary){background:#ffffff1f;border-color:#ffffff40;color:#fff}
+.wh-overlay-actions button:not(.primary):hover{background:#ffffff33}
+@media(prefers-reduced-motion:reduce){.wh-overlay{transition:none}}
+@media(hover:none){
+  /* No hover on touch - keep the sheet permanently open so the warehouse
+     is still identifiable and actionable without a mouse. */
+  .wh-overlay{transform:translateY(0)}
+}
 
 /* ---------- visual warehouse builder ---------- */
 @keyframes warehouse-view-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -336,15 +440,18 @@ tr.clickable:hover{background:#f8fafc}
 .area-card-meta{color:var(--text-muted);font-size:12.5px}
 
 .area-view-header{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.area-edit-form{align-items:flex-start}
+.area-edit-form .field input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--text)}
 .area-view-icon{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
 .rack-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
-.rack-palette-chip{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border:1.5px dashed var(--accent);border-radius:var(--radius);color:var(--accent);font-weight:600;font-size:13px;cursor:grab;background:var(--accent-soft);user-select:none;animation:rack-chip-pulse 1.8s ease-in-out infinite}
-.rack-palette-chip:hover{background:#dde9ff;animation-play-state:paused}
+.rack-palette-chip{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border:1.5px dashed var(--accent);border-radius:var(--radius);color:var(--accent);font-weight:600;font-size:13px;cursor:grab;background:var(--accent-soft);user-select:none;animation:rack-chip-pulse 1.5s ease-out infinite}
+.rack-palette-chip:hover{background:var(--accent-soft-hover);animation-play-state:paused}
 .rack-palette-chip.disabled{opacity:.5;cursor:not-allowed;border-color:var(--border);color:var(--text-muted);background:var(--bg);animation:none}
 @keyframes rack-chip-pulse{
-  0%,100%{border-color:var(--accent);box-shadow:0 0 0 0 rgba(37,99,235,.35)}
-  50%{border-color:var(--accent-dark);box-shadow:0 0 0 5px rgba(37,99,235,0)}
+  0%{border-color:var(--accent);box-shadow:0 0 0 0 rgba(var(--accent-rgb),.55)}
+  70%{border-color:var(--accent-dark);box-shadow:0 0 0 10px rgba(var(--accent-rgb),0)}
+  100%{border-color:var(--accent);box-shadow:0 0 0 0 rgba(var(--accent-rgb),0)}
 }
 @media (prefers-reduced-motion: reduce){
   .rack-palette-chip{animation:none}
@@ -356,7 +463,7 @@ tr.clickable:hover{background:#f8fafc}
 .rack-tile:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 18px #0f1b2d1a}
 .rack-tile strong{color:var(--text);font-size:13.5px}
 .rack-tile-meta{color:var(--text-muted);font-size:11.5px}
-.rack-cell-empty{min-height:96px;border:1.5px dashed var(--border);border-radius:var(--radius);background:#f8fafc;transition:border-color .12s,background .12s}
+.rack-cell-empty{min-height:96px;border:1.5px dashed var(--border);border-radius:var(--radius);background:var(--surface-muted);transition:border-color .12s,background .12s}
 .rack-cell-dragover{border-color:var(--accent);background:var(--accent-soft)}
 
 .rack-panel-header{display:flex;align-items:center;gap:12px}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowDown, ArrowUp, Layers, Pencil, Plus, Trash2 } from 'lucide-react';
-import { api, Location, LocationStock, transferOutLocation } from '../api';
+import { api, confirmRemoveLocation, Location, LocationStock, transferOutLocation } from '../api';
 import Drawer from './Drawer';
 import RemoveLocationConfirm from './RemoveLocationConfirm';
 import { showToast } from './Toast';
@@ -64,31 +64,29 @@ function ShelfRow({
     }
   }
 
-  async function remove(force: boolean) {
+  async function remove(password: string, force: boolean) {
+    // No try/catch: a failure (wrong password, etc.) must propagate to
+    // RemoveLocationConfirm's own handler so it shows the error inline and
+    // resets its busy state, matching the warehouse/product delete flows.
     setRemoving(true);
     try {
-      await api(`/locations/${shelf.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: false, force }) }, token);
-      showToast(force ? 'Shelf removed and its stock cleared.' : 'Shelf removed.');
-      setConfirmingRemove(false);
-      onRemoved();
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Failed to remove shelf', 'error');
+      await confirmRemoveLocation(shelf.id, password, force, token);
+    } finally {
       setRemoving(false);
     }
+    showToast(force ? 'Shelf removed and its stock cleared.' : 'Shelf removed.');
+    setConfirmingRemove(false);
+    onRemoved();
   }
 
   function handleRemoveClick() {
-    if ((stock?.product_count ?? 0) > 0) {
-      setConfirmingRemove(true);
-    } else {
-      remove(false);
-    }
+    setConfirmingRemove(true);
   }
 
-  async function transferThenRemove(toLocationId: number) {
+  async function transferThenRemove(toLocationId: number, password: string) {
     const result = await transferOutLocation(shelf.id, toLocationId, token);
     showToast(result.message);
-    await remove(false);
+    await remove(password, false);
   }
 
   if (editing) {
@@ -153,10 +151,10 @@ function ShelfRow({
           targetName={shelf.name}
           productCount={stock?.product_count ?? 0}
           totalUnits={stock?.total_units ?? 0}
-          confirmLabel="Remove Anyway"
+          confirmLabel={(stock?.total_units ?? 0) > 0 ? 'Remove Anyway' : 'Remove'}
           destinationRacks={otherRacks}
           onCancel={() => setConfirmingRemove(false)}
-          onConfirm={() => remove(true)}
+          onConfirm={password => remove(password, (stock?.total_units ?? 0) > 0)}
           onTransfer={transferThenRemove}
         />
       )}
@@ -276,31 +274,29 @@ export default function RackPanel({
     }
   }
 
-  async function removeRack(force: boolean) {
+  async function removeRack(password: string, force: boolean) {
+    // No try/catch: a failure (wrong password, etc.) must propagate to
+    // RemoveLocationConfirm's own handler so it shows the error inline and
+    // resets its busy state, matching the warehouse/product delete flows.
     setRemovingRack(true);
     try {
-      await api(`/locations/${rack.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: false, force }) }, token);
-      showToast(force ? 'Rack removed and its stock cleared.' : 'Rack removed.');
-      onChanged();
-      onClose();
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Failed to remove rack', 'error');
+      await confirmRemoveLocation(rack.id, password, force, token);
+    } finally {
       setRemovingRack(false);
     }
+    showToast(force ? 'Rack removed and its stock cleared.' : 'Rack removed.');
+    onChanged();
+    onClose();
   }
 
   function handleRemoveRackClick() {
-    if (rackStock.products > 0) {
-      setConfirmingRemoveRack(true);
-    } else {
-      removeRack(false);
-    }
+    setConfirmingRemoveRack(true);
   }
 
-  async function transferRackThenRemove(toLocationId: number) {
+  async function transferRackThenRemove(toLocationId: number, password: string) {
     const result = await transferOutLocation(rack.id, toLocationId, token);
     showToast(result.message);
-    await removeRack(false);
+    await removeRack(password, false);
   }
 
   return (
@@ -401,10 +397,10 @@ export default function RackPanel({
           targetName={rack.name}
           productCount={rackStock.products}
           totalUnits={rackStock.units}
-          confirmLabel="Remove Anyway"
+          confirmLabel={rackStock.units > 0 ? 'Remove Anyway' : 'Remove'}
           destinationRacks={otherRacksForRack}
           onCancel={() => setConfirmingRemoveRack(false)}
-          onConfirm={() => removeRack(true)}
+          onConfirm={password => removeRack(password, rackStock.units > 0)}
           onTransfer={transferRackThenRemove}
         />
       )}

@@ -109,7 +109,7 @@ export default function CompanyDetail({
       <section className="card">
         <h2>Create Company Admin</h2>
         {hasCompanyAdmin && (
-          <p style={{ color: '#687386' }}>
+          <p style={{ color: 'var(--text-muted)' }}>
             This company already has a company admin. You can still add another if needed.
           </p>
         )}

@@ -20,6 +20,7 @@ export default function AddProductModal({
   autoReturnToStock,
   onClose,
   onCreated,
+  onProductCreated,
 }: {
   token: string;
   warehouses: Warehouse[];
@@ -28,6 +29,12 @@ export default function AddProductModal({
   autoReturnToStock?: boolean;
   onClose: () => void;
   onCreated: (product: Product, action: 'add-stock' | 'view' | 'add-another') => void;
+  /** Fired the moment the product actually exists server-side, before the
+   * user picks what to do next (Add Stock / View / Add Another / Done) -
+   * every exit path, including just closing the success screen, needs the
+   * parent's product list refreshed immediately, not only the two paths
+   * that also navigate somewhere via onCreated. */
+  onProductCreated: (product: Product) => void;
 }) {
   const [step, setStep] = React.useState<1 | 2 | 3>(1);
   const [imageUrl, setImageUrl] = React.useState<string | null>(null);
@@ -67,6 +74,7 @@ export default function AddProductModal({
         },
         token,
       );
+      onProductCreated(product);
       if (autoReturnToStock) {
         onCreated(product, 'add-stock');
         return;
@@ -166,7 +174,7 @@ export default function AddProductModal({
           </div>
           <div className="field">
             <label>
-              Minimum Stock
+              Low Stock Alert Level
               <span className="help-tip">
                 <HelpCircle size={14} style={{ marginLeft: 4, color: 'var(--text-muted)' }} />
                 <span className="tooltip">

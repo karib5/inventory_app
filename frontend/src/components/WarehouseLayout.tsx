@@ -1,6 +1,6 @@
 import React from 'react';
-import { ArrowLeft, Layers, Plus, Trash2 } from 'lucide-react';
-import { api, Location, LocationStock, transferOutLocation } from '../api';
+import { ArrowLeft, Layers, Pencil, Plus, Trash2 } from 'lucide-react';
+import { api, confirmRemoveLocation, Location, LocationStock, transferOutLocation } from '../api';
 import { SkeletonRows } from './Skeleton';
 import AreaIcon from './AreaIcon';
 import RackPanel from './RackPanel';
@@ -60,6 +60,15 @@ export default function WarehouseLayout({
   const [areaDescription, setAreaDescription] = React.useState('');
   const [areaCapacity, setAreaCapacity] = React.useState('4');
   const [savingArea, setSavingArea] = React.useState(false);
+
+  const [editingArea, setEditingArea] = React.useState(false);
+  const [editAreaName, setEditAreaName] = React.useState('');
+  const [editAreaDescription, setEditAreaDescription] = React.useState('');
+  const [savingAreaEdit, setSavingAreaEdit] = React.useState(false);
+
+  React.useEffect(() => {
+    setEditingArea(false);
+  }, [areaId]);
 
   const [dragOverCell, setDragOverCell] = React.useState<string | null>(null);
 
@@ -145,16 +154,41 @@ export default function WarehouseLayout({
         },
         token,
       );
-      showToast(`"${areaName}" area created.`);
+      showToast(`"${areaName}" zone created.`);
       setAddingArea(false);
       setAreaName('');
       setAreaDescription('');
       setAreaCapacity('4');
       await refresh();
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Failed to create area', 'error');
+      showToast(e instanceof Error ? e.message : 'Failed to create zone', 'error');
     } finally {
       setSavingArea(false);
+    }
+  }
+
+  function startEditingArea(area: Location) {
+    setEditAreaName(area.name);
+    setEditAreaDescription(area.description ?? '');
+    setEditingArea(true);
+  }
+
+  async function saveAreaEdit(event: React.FormEvent, areaIdToEdit: number) {
+    event.preventDefault();
+    setSavingAreaEdit(true);
+    try {
+      await api(
+        `/locations/${areaIdToEdit}`,
+        { method: 'PATCH', body: JSON.stringify({ name: editAreaName, description: editAreaDescription || null }) },
+        token,
+      );
+      showToast('Zone updated.');
+      setEditingArea(false);
+      await refresh();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Failed to update zone', 'error');
+    } finally {
+      setSavingAreaEdit(false);
     }
   }
 
@@ -194,38 +228,33 @@ export default function WarehouseLayout({
     }
   }
 
-  async function removeArea(force: boolean) {
+  async function removeArea(password: string, force: boolean) {
+    // No try/catch here: a failure (e.g. wrong password) must propagate to
+    // RemoveLocationConfirm's own onConfirm/onTransfer handler, which shows
+    // it inline and resets its busy state - matching how the warehouse/
+    // product password-delete flows work.
     if (!currentArea) return;
     setRemovingArea(true);
     try {
-      await api(
-        `/locations/${currentArea.id}`,
-        { method: 'PATCH', body: JSON.stringify({ is_active: false, force }) },
-        token,
-      );
-      showToast(force ? 'Area removed and its stock cleared.' : 'Area removed.');
-      setConfirmingRemoveArea(false);
-      setAreaId(null);
-      await refresh();
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Failed to remove area', 'error');
+      await confirmRemoveLocation(currentArea.id, password, force, token);
+    } finally {
       setRemovingArea(false);
     }
+    showToast(force ? 'Zone removed and its stock cleared.' : 'Zone removed.');
+    setConfirmingRemoveArea(false);
+    setAreaId(null);
+    await refresh();
   }
 
-  async function transferAreaThenRemove(toLocationId: number) {
+  async function transferAreaThenRemove(toLocationId: number, password: string) {
     if (!currentArea) return;
     const result = await transferOutLocation(currentArea.id, toLocationId, token);
     showToast(result.message);
-    await removeArea(false);
+    await removeArea(password, false);
   }
 
-  function handleRemoveAreaClick(stats: { products: number }) {
-    if (stats.products > 0) {
-      setConfirmingRemoveArea(true);
-    } else {
-      removeArea(false);
-    }
+  function handleRemoveAreaClick() {
+    setConfirmingRemoveArea(true);
   }
 
   function handleCellDrop(event: React.DragEvent, x: number, y: number) {
@@ -284,23 +313,56 @@ export default function WarehouseLayout({
           <ArrowLeft size={15} /> Back to Warehouse
         </button>
 
-        <div className="area-view-header">
-          <span className="area-view-icon">
-            <AreaIcon name={currentArea.name} size={22} />
-          </span>
-          <div>
-            <h2 style={{ margin: 0 }}>{currentArea.name}</h2>
-            <p style={{ color: 'var(--text-muted)', margin: '2px 0 0' }}>
-              {stats.products} products · {stats.units} units
-              {currentArea.description ? ` · ${currentArea.description}` : ''}
-            </p>
-          </div>
-          {capacity != null && (
-            <span className={`badge ${atCapacity ? 'badge-inactive' : 'badge-active'}`} style={{ marginLeft: 'auto' }}>
-              {racks.length} / {capacity} Racks
+        {editingArea ? (
+          <form className="area-view-header area-edit-form" onSubmit={e => saveAreaEdit(e, currentArea.id)}>
+            <span className="area-view-icon">
+              <AreaIcon name={currentArea.name} size={22} />
             </span>
-          )}
-        </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="field" style={{ marginBottom: 8 }}>
+                <input value={editAreaName} onChange={e => setEditAreaName(e.target.value)} required autoFocus placeholder="Zone name" />
+              </div>
+              <div className="field" style={{ marginBottom: 0 }}>
+                <input
+                  value={editAreaDescription}
+                  onChange={e => setEditAreaDescription(e.target.value)}
+                  placeholder="Description (optional)"
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="primary" disabled={savingAreaEdit}>
+                {savingAreaEdit ? 'Saving...' : 'Save'}
+              </button>
+              <button type="button" onClick={() => setEditingArea(false)} disabled={savingAreaEdit}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="area-view-header">
+            <span className="area-view-icon">
+              <AreaIcon name={currentArea.name} size={22} />
+            </span>
+            <div>
+              <h2 style={{ margin: 0 }}>{currentArea.name}</h2>
+              <p style={{ color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                {stats.products} products · {stats.units} units
+                {currentArea.description ? ` · ${currentArea.description}` : ''}
+              </p>
+            </div>
+            {canManage && (
+              <button className="icon-btn ghost" onClick={() => startEditingArea(currentArea)} aria-label="Edit zone">
+                <Pencil size={14} />
+              </button>
+            )}
+            {capacity != null && (
+              <span className={`badge ${atCapacity ? 'badge-inactive' : 'badge-active'}`} style={{ marginLeft: 'auto' }}>
+                {racks.length} / {capacity} Racks
+              </span>
+            )}
+          </div>
+        )}
 
         {canManage && (
           <div className="rack-toolbar">
@@ -376,9 +438,9 @@ export default function WarehouseLayout({
 
         {canManage && (
           <div className="danger-zone" style={{ marginTop: 24 }}>
-            <h4>Danger Zone — {currentArea.name} (Area)</h4>
-            <button className="danger" onClick={() => handleRemoveAreaClick(stats)} disabled={removingArea}>
-              <Trash2 size={14} /> {removingArea ? 'Removing...' : 'Remove Area'}
+            <h4>Danger Zone — {currentArea.name} (Zone)</h4>
+            <button className="danger" onClick={handleRemoveAreaClick} disabled={removingArea}>
+              <Trash2 size={14} /> {removingArea ? 'Removing...' : 'Remove Zone'}
             </button>
           </div>
         )}
@@ -391,14 +453,14 @@ export default function WarehouseLayout({
             );
             return (
               <RemoveLocationConfirm
-                title="Remove Area?"
+                title="Remove Zone?"
                 targetName={currentArea.name}
                 productCount={stats.products}
                 totalUnits={stats.units}
-                confirmLabel="Remove Anyway"
+                confirmLabel={stats.units > 0 ? 'Remove Anyway' : 'Remove'}
                 destinationRacks={destinationRacks}
                 onCancel={() => setConfirmingRemoveArea(false)}
-                onConfirm={() => removeArea(true)}
+                onConfirm={password => removeArea(password, stats.units > 0)}
                 onTransfer={transferAreaThenRemove}
               />
             );
@@ -430,14 +492,14 @@ export default function WarehouseLayout({
     <div className="warehouse-view" key="warehouse-root">
       {canManage && (
         <div className="inline-form" style={{ marginBottom: 16 }}>
-          <button onClick={() => setAddingArea(a => !a)}>{addingArea ? 'Cancel' : '+ Add Area'}</button>
+          <button onClick={() => setAddingArea(a => !a)}>{addingArea ? 'Cancel' : '+ Add Zone'}</button>
         </div>
       )}
 
       {addingArea && canManage && (
         <form onSubmit={addArea} className="card" style={{ marginBottom: 16 }}>
           <div className="inline-form">
-            <input value={areaName} onChange={e => setAreaName(e.target.value)} placeholder="Area name (e.g. Shirt Area)" required />
+            <input value={areaName} onChange={e => setAreaName(e.target.value)} placeholder="Zone name (e.g. Shirt Zone)" required />
             <input value={areaDescription} onChange={e => setAreaDescription(e.target.value)} placeholder="Description (optional)" />
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
               Max racks
@@ -450,7 +512,7 @@ export default function WarehouseLayout({
               />
             </label>
             <button className="primary" disabled={savingArea}>
-              {savingArea ? 'Creating...' : 'Create Area'}
+              {savingArea ? 'Creating...' : 'Create Zone'}
             </button>
           </div>
         </form>
@@ -458,8 +520,8 @@ export default function WarehouseLayout({
 
       {areas.length === 0 ? (
         <div className="empty-state">
-          <h3>No storage areas yet</h3>
-          <p>Add your first area (a room, section, or zone) to start laying out this warehouse.</p>
+          <h3>No storage zones yet</h3>
+          <p>Add your first zone (a room, section, or area) to start laying out this warehouse.</p>
         </div>
       ) : (
         <div className="area-grid">
