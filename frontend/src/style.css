@@ -103,33 +103,47 @@ button.ghost:hover{background:var(--surface-muted)}
 button.icon-btn{padding:9px;border-radius:8px}
 
 /* ---------- auth / login page ---------- */
-.auth-page{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr}
-.auth-brand{position:relative;background:var(--navy);color:#fff;padding:64px 56px;display:flex;align-items:flex-start;overflow:hidden}
-.warehouse-scene{position:absolute;inset:0;width:100%;height:100%;display:block}
-.auth-brand-grid{position:absolute;inset:0;background-image:linear-gradient(#ffffff12 1px,transparent 1px),linear-gradient(90deg,#ffffff12 1px,transparent 1px);background-size:42px 42px;mask-image:radial-gradient(ellipse 70% 60% at 30% 30%,#000 40%,transparent 85%)}
-.auth-brand-scrim{position:absolute;inset:0;background:linear-gradient(180deg,#060b16d9 0%,#060b1666 38%,#060b1600 62%);pointer-events:none}
-.auth-brand-content{position:relative;z-index:2;max-width:440px}
-.auth-logo{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:16px;color:#fff;margin-bottom:32px}
-.auth-logo svg{color:var(--accent)}
-.auth-brand-content h1{font-size:30px;line-height:1.25;margin:0 0 14px;letter-spacing:-0.01em;text-shadow:0 2px 16px #00000060}
-.auth-brand-content p{color:#dbe2ef;font-size:15px;line-height:1.6;margin:0;text-shadow:0 2px 12px #00000060}
+/* Full-viewport blurred photo backdrop behind a centered, rounded
+   two-panel card - the blur is a real filter on an oversized backdrop
+   layer (not backdrop-filter), so it works the same in every browser and
+   never shows a sharp un-blurred sliver at the edges. */
+/* Overrides the generic main{max-width/margin/padding} rule above (meant
+   for dashboard page content) so the blurred backdrop truly reaches every
+   edge of the viewport instead of leaving a page-background band around
+   a 1100px-capped, 40px-inset box. */
+.auth-page{min-height:100vh;width:100%;max-width:none;margin:0;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:48px 24px;overflow:hidden;background:var(--navy)}
+.auth-backdrop{position:absolute;inset:-60px;background-size:cover;background-position:center;filter:blur(38px) saturate(1.15) brightness(.6);transform:scale(1.08);z-index:0}
+.auth-backdrop-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,8,17,.35) 0%,rgba(4,8,17,.58) 100%);z-index:0}
+:root[data-theme="dark"] .auth-backdrop-scrim{background:linear-gradient(180deg,rgba(2,5,11,.55) 0%,rgba(2,5,11,.78) 100%)}
 
-.auth-form-side{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;background:var(--bg);overflow:hidden}
-.auth-form-side::before{content:'';position:absolute;width:520px;height:520px;background:radial-gradient(circle,var(--accent-soft) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);opacity:.7;pointer-events:none}
-.theme-toggle-login{position:absolute;top:20px;right:20px;padding:9px;border-radius:8px;z-index:2}
-.auth-route-icon{position:absolute;top:78px;right:36px;z-index:0;width:140px;height:70px}
-.auth-route-truck{position:absolute;top:-4px;right:2px;color:var(--accent)}
-.auth-corner-icon{position:absolute;bottom:0;z-index:0;opacity:.5}
-.auth-corner-left{left:0}
-.auth-corner-right{right:0}
-@media(max-width:900px){.auth-route-icon,.auth-corner-icon{display:none}}
-.auth-card{position:relative;z-index:1;width:min(400px,100%);background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:36px 32px}
-.auth-card-logo{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
-.auth-card h2{margin:0 0 4px;font-size:22px}
+/* The floating card: two equal panels, clipped to one large rounded
+   rectangle by overflow:hidden on the shell itself, so every outer
+   corner reads as a circular curve rather than a sharp right angle -
+   there's no separate radius bookkeeping needed on each panel. */
+.auth-shell{position:relative;z-index:1;width:min(920px,100%);height:min(620px,86vh);display:grid;grid-template-columns:1fr 1fr;background:var(--card);border-radius:32px;overflow:hidden;box-shadow:0 30px 80px #00000055,0 8px 24px #00000033;animation:auth-card-in .35s ease-out}
+@keyframes auth-card-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.auth-shell{animation:none}}
+
+.theme-toggle-login{position:absolute;top:18px;right:18px;padding:9px;border-radius:50%;z-index:3;background:#ffffffe6;color:#1c2536;box-shadow:0 2px 10px #00000030}
+.theme-toggle-login:hover{background:#fff}
+
+.auth-form-panel{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;padding:48px 56px;overflow-y:auto}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;flex-shrink:0}
+.auth-logo-icon{display:flex;color:var(--accent);flex-shrink:0}
+.auth-logo-word{display:block;font-weight:800;font-size:16px;color:var(--text);letter-spacing:-0.01em}
+.auth-logo-sub{display:block;font-size:9.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);margin-top:2px}
+
+.auth-image-panel{position:relative;overflow:hidden}
+.auth-brand-image{width:100%;height:100%;display:block;object-fit:cover}
+.auth-image-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,8,17,0) 55%,rgba(4,8,17,.32) 100%);pointer-events:none}
+
+.auth-card{width:100%}
+.auth-card h2{margin:0 0 4px;font-size:23px}
 .auth-subtitle{color:var(--text-muted);margin:0 0 22px;font-size:14px}
 .auth-card .field{margin-bottom:16px}
 .auth-card .field label{display:block;font-weight:600;margin-bottom:6px;font-size:13.5px}
-.auth-card .field input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:15px;background:var(--card);color:var(--text)}
+.auth-card .field input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:15px;background:var(--card);color:var(--text);transition:border-color .12s,box-shadow .12s}
+.auth-card .field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .field-label-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
 .field-label-row label{margin-bottom:0}
 .auth-forgot-link{padding:0;height:auto;min-width:0;background:transparent;color:var(--accent);font-size:12.5px;font-weight:600}
@@ -139,14 +153,24 @@ button.icon-btn{padding:9px;border-radius:8px}
 .auth-resend-link{width:100%;justify-content:center;padding:8px;height:auto;background:transparent;color:var(--accent);font-size:13px;font-weight:600;margin-top:10px}
 .auth-resend-link:hover{background:transparent;text-decoration:underline}
 .auth-resend-link:disabled{opacity:.6;cursor:default}
+.input-icon-field{position:relative}
+.input-icon-field>svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
+.auth-card .field .input-icon-field input{padding-left:40px}
 .password-field{position:relative}
-.password-field input{padding-right:42px}
-.password-toggle{position:absolute;right:2px;top:2px;bottom:2px;width:38px;padding:0;border:0;background:transparent;color:var(--text-muted);justify-content:center;border-radius:8px}
+.auth-card .field .password-field input{padding-right:42px}
+.password-toggle{position:absolute;right:2px;top:2px;bottom:2px;width:38px;padding:0;border:0;background:transparent;color:var(--text-muted);justify-content:center;border-radius:8px;transition:color .12s,background .12s}
 .password-toggle:hover{background:var(--surface-muted);color:var(--text)}
-.auth-submit{width:100%;justify-content:center;margin-top:4px;padding:12px 16px}
+.auth-submit{width:100%;justify-content:center;margin-top:4px;padding:12px 16px;gap:8px}
 .auth-card .error{margin-bottom:16px}
+.auth-card .field-error{color:var(--danger);font-size:12.5px;margin:6px 0 0}
 .auth-card .session-banner{margin-bottom:18px;display:flex;align-items:center;gap:8px}
-.auth-form-footer{position:relative;z-index:1;display:flex;align-items:center;gap:6px;margin-top:20px;color:var(--text-muted);font-size:12.5px}
+.auth-form-footer{position:relative;z-index:1;display:flex;align-items:center;gap:6px;color:#eef1f6;font-size:12.5px;text-shadow:0 1px 8px #00000070}
+
+@media(max-width:860px){
+  .auth-shell{grid-template-columns:1fr;max-height:none;width:min(440px,100%)}
+  .auth-image-panel{display:none}
+  .auth-form-panel{padding:40px 32px}
+}
 
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{animation:spin .8s linear infinite}
@@ -173,11 +197,6 @@ button.icon-btn{padding:9px;border-radius:8px}
   .toast-host{left:16px;right:16px;bottom:16px;max-width:none}
 }
 
-@media(max-width:900px){
-  .auth-page{grid-template-columns:1fr}
-  .auth-brand{display:none}
-  .auth-form-side{min-height:100vh;padding:32px 20px}
-}
 .error{padding:10px 14px;background:var(--danger-soft);color:var(--danger);border-radius:var(--radius);font-size:14px}
 .session-banner{padding:10px 14px;background:var(--warning-soft);color:var(--warning);border-radius:var(--radius);font-size:14px;margin-top:-8px}
 

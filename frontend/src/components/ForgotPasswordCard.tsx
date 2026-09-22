@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, KeyRound, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { forgotPassword, resetPassword } from '../api';
 
 /** The whole forgot/reset flow lives in this one component, entirely
@@ -91,15 +91,19 @@ export default function ForgotPasswordCard({
 
         <div className="field">
           <label htmlFor="forgot-email">Email</label>
-          <input
-            id="forgot-email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            autoComplete="username"
-            autoFocus
-            required
-          />
+          <div className="input-icon-field">
+            <Mail size={16} aria-hidden="true" />
+            <input
+              id="forgot-email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              autoComplete="username"
+              autoFocus
+              required
+            />
+          </div>
         </div>
 
         {error && (
@@ -146,26 +150,31 @@ export default function ForgotPasswordCard({
 
       <div className="field">
         <label htmlFor="reset-code">Reset code</label>
-        <input
-          id="reset-code"
-          value={code}
-          onChange={e => setCode(e.target.value.toUpperCase())}
-          placeholder="e.g. AB3DE9FG"
-          maxLength={8}
-          autoFocus
-          required
-          style={{ letterSpacing: '0.12em', fontWeight: 700, textTransform: 'uppercase' }}
-        />
+        <div className="input-icon-field">
+          <KeyRound size={16} aria-hidden="true" />
+          <input
+            id="reset-code"
+            value={code}
+            onChange={e => setCode(e.target.value.toUpperCase())}
+            placeholder="e.g. AB3DE9FG"
+            maxLength={8}
+            autoFocus
+            required
+            style={{ letterSpacing: '0.12em', fontWeight: 700, textTransform: 'uppercase' }}
+          />
+        </div>
       </div>
 
       <div className="field">
         <label htmlFor="reset-new-password">New password</label>
-        <div className="password-field">
+        <div className="password-field input-icon-field">
+          <Lock size={16} aria-hidden="true" />
           <input
             id="reset-new-password"
             type={showPassword ? 'text' : 'password'}
             value={newPassword}
             onChange={e => setNewPassword(e.target.value)}
+            placeholder="Enter new password"
             autoComplete="new-password"
             minLength={8}
             required
@@ -176,6 +185,7 @@ export default function ForgotPasswordCard({
             onClick={() => setShowPassword(s => !s)}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
             aria-pressed={showPassword}
+            title={showPassword ? 'Hide password' : 'Show password'}
             tabIndex={0}
           >
             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -185,15 +195,19 @@ export default function ForgotPasswordCard({
 
       <div className="field">
         <label htmlFor="reset-confirm-password">Confirm new password</label>
-        <input
-          id="reset-confirm-password"
-          type={showPassword ? 'text' : 'password'}
-          value={confirmPassword}
-          onChange={e => setConfirmPassword(e.target.value)}
-          autoComplete="new-password"
-          minLength={8}
-          required
-        />
+        <div className="input-icon-field">
+          <Lock size={16} aria-hidden="true" />
+          <input
+            id="reset-confirm-password"
+            type={showPassword ? 'text' : 'password'}
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            placeholder="Confirm new password"
+            autoComplete="new-password"
+            minLength={8}
+            required
+          />
+        </div>
       </div>
 
       {error && (
