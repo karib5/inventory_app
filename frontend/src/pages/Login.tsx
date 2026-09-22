@@ -1,9 +1,12 @@
 import React from 'react';
-import { Boxes, Eye, EyeOff, Loader2, ShieldCheck, Truck } from 'lucide-react';
+import { ArrowRight, Boxes, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { api } from '../api';
+import loginBackdropPhoto from '../assets/login-backdrop.jpg';
+import loginPanelPhoto from '../assets/login-panel.jpg';
 import ForgotPasswordCard from '../components/ForgotPasswordCard';
 import ThemeToggle from '../components/ThemeToggle';
-import WarehouseScene from '../components/WarehouseScene';
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Login({
   onLoggedIn,
@@ -16,22 +19,58 @@ export default function Login({
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
+  const [emailError, setEmailError] = React.useState('');
+  const [passwordError, setPasswordError] = React.useState('');
   const [error, setError] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [postResetMessage, setPostResetMessage] = React.useState('');
 
+  // Lets Escape back out of the forgot-password view, the same way the
+  // "Back to sign in" link does - a keyboard user shouldn't need to tab
+  // to it.
+  React.useEffect(() => {
+    if (view !== 'forgot') return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setView('login');
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [view]);
+
   async function login(event: React.FormEvent) {
     event.preventDefault();
     if (loading) return;
-    setLoading(true);
+
+    setEmailError('');
+    setPasswordError('');
     setError('');
+
+    const trimmedEmail = email.trim();
+    let hasFieldError = false;
+    if (!trimmedEmail) {
+      setEmailError('Please enter your email address.');
+      hasFieldError = true;
+    } else if (!EMAIL_PATTERN.test(trimmedEmail)) {
+      setEmailError('Please enter a valid email address.');
+      hasFieldError = true;
+    }
+    if (!password) {
+      setPasswordError('Please enter your password.');
+      hasFieldError = true;
+    }
+    if (hasFieldError) return;
+
+    setLoading(true);
     try {
-      const body = new URLSearchParams({ username: email, password });
+      const body = new URLSearchParams({ username: trimmedEmail, password });
       const result = await api('/auth/login', { method: 'POST', body });
       localStorage.setItem('inventory_token', result.access_token);
       onLoggedIn(result.access_token);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Login failed');
+      // The backend already avoids saying which field was wrong - keep that
+      // guarantee here too, regardless of its exact wording.
+      const message = e instanceof Error ? e.message : 'Login failed';
+      setError(/incorrect|invalid/i.test(message) ? 'Invalid email or password.' : message);
     } finally {
       setLoading(false);
     }
@@ -39,143 +78,145 @@ export default function Login({
 
   return (
     <main className="auth-page">
-      <section className="auth-brand" aria-hidden="true">
-        <WarehouseScene />
-        <div className="auth-brand-grid" />
-        <div className="auth-brand-scrim" />
-        <div className="auth-brand-content">
-          <div className="auth-logo">
-            <Boxes size={22} /> Inventory
-          </div>
-          <h1>Manage your entire warehouse operation in one place.</h1>
-          <p>Track products, warehouses, and stock movements in real time — built for teams that can't afford inventory surprises.</p>
-        </div>
-      </section>
+      <div className="auth-backdrop" aria-hidden="true" style={{ backgroundImage: `url(${loginBackdropPhoto})` }} />
+      <div className="auth-backdrop-scrim" aria-hidden="true" />
 
-      <section className="auth-form-side">
+      <div className="auth-shell">
         <ThemeToggle collapsed className="theme-toggle-login" />
 
-        <div className="auth-route-icon">
-          <svg width="140" height="70" viewBox="0 0 140 70" aria-hidden="true">
-            <path d="M4 60 Q 60 60 90 30 T 130 12" fill="none" stroke="var(--accent)" strokeWidth="2" strokeDasharray="5 6" opacity="0.55" />
-          </svg>
-          <Truck size={24} className="auth-route-truck" strokeWidth={1.75} aria-hidden="true" />
-        </div>
-
-        <svg className="auth-corner-icon auth-corner-left" width="120" height="110" viewBox="0 0 120 110" aria-hidden="true">
-          <rect x="14" y="46" width="40" height="40" rx="2" fill="var(--accent)" />
-          <rect x="50" y="30" width="44" height="56" rx="2" fill="var(--accent)" opacity="0.75" />
-          <rect x="60" y="42" width="24" height="4" fill="var(--card)" opacity="0.6" />
-          <rect x="60" y="52" width="24" height="4" fill="var(--card)" opacity="0.6" />
-          <rect x="24" y="58" width="20" height="4" fill="var(--card)" opacity="0.6" />
-        </svg>
-
-        <svg className="auth-corner-icon auth-corner-right" width="140" height="110" viewBox="0 0 140 110" aria-hidden="true">
-          <path d="M0 110 V54 L28 34 L56 54 V110 Z" fill="var(--accent)" opacity="0.8" />
-          <rect x="8" y="62" width="14" height="14" fill="var(--card)" opacity="0.55" />
-          <rect x="34" y="62" width="14" height="14" fill="var(--card)" opacity="0.55" />
-          <rect x="8" y="84" width="14" height="14" fill="var(--card)" opacity="0.55" />
-          <rect x="34" y="84" width="14" height="14" fill="var(--card)" opacity="0.55" />
-          <path d="M60 110 V70 H126 V110 Z" fill="var(--accent)" opacity="0.55" />
-          <rect x="70" y="80" width="16" height="16" fill="var(--card)" opacity="0.5" />
-          <rect x="100" y="80" width="16" height="16" fill="var(--card)" opacity="0.5" />
-        </svg>
-
-        {view === 'forgot' ? (
-          <ForgotPasswordCard
-            initialEmail={email}
-            onBackToLogin={() => setView('login')}
-            onResetSuccess={message => {
-              setPostResetMessage(message);
-              setPassword('');
-              setView('login');
-            }}
-          />
-        ) : (
-          <form className="auth-card" onSubmit={login} noValidate>
-            <div className="auth-card-logo">
-              <Boxes size={24} />
+        <section className="auth-form-panel">
+          <div className="auth-logo">
+            <span className="auth-logo-icon">
+              <Boxes size={22} />
+            </span>
+            <div>
+              <span className="auth-logo-word">Inventory</span>
+              <span className="auth-logo-sub">Warehouse Management System</span>
             </div>
-            <h2>Welcome back</h2>
-            <p className="auth-subtitle">Sign in to your account</p>
+          </div>
 
-            {(postResetMessage || sessionMessage) && (
-              <div className="session-banner" role="status">
-                <ShieldCheck size={15} /> {postResetMessage || sessionMessage}
-              </div>
-            )}
+          {view === 'forgot' ? (
+            <ForgotPasswordCard
+              initialEmail={email}
+              onBackToLogin={() => setView('login')}
+              onResetSuccess={message => {
+                setPostResetMessage(message);
+                setPassword('');
+                setView('login');
+              }}
+            />
+          ) : (
+            <form className="auth-card" onSubmit={login} noValidate>
+              <h2>Welcome back</h2>
+              <p className="auth-subtitle">Sign in to your account</p>
 
-            <div className="field">
-              <label htmlFor="login-email">Email</label>
-              <input
-                id="login-email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                autoComplete="username"
-                autoFocus
-                required
-              />
-            </div>
-
-            <div className="field">
-              <div className="field-label-row">
-                <label htmlFor="login-password">Password</label>
-                <button
-                  type="button"
-                  className="ghost auth-forgot-link"
-                  onClick={() => {
-                    setError('');
-                    setPostResetMessage('');
-                    setView('forgot');
-                  }}
-                >
-                  Forgot password?
-                </button>
-              </div>
-              <div className="password-field">
-                <input
-                  id="login-password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  required
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword(s => !s)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  aria-pressed={showPassword}
-                  tabIndex={0}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div className="error" role="alert">
-                {error}
-              </div>
-            )}
-
-            <button className="primary auth-submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="spin" /> Signing in...
-                </>
-              ) : (
-                'Sign In'
+              {(postResetMessage || sessionMessage) && (
+                <div className="session-banner" role="status">
+                  <ShieldCheck size={15} /> {postResetMessage || sessionMessage}
+                </div>
               )}
-            </button>
-          </form>
-        )}
-        <p className="auth-form-footer">
-          <ShieldCheck size={13} /> Your data is encrypted and access-controlled.
-        </p>
-      </section>
+
+              <div className="field">
+                <label htmlFor="login-email">Email</label>
+                <div className="input-icon-field">
+                  <Mail size={16} aria-hidden="true" />
+                  <input
+                    id="login-email"
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    autoComplete="username"
+                    autoFocus
+                    aria-invalid={emailError ? true : undefined}
+                    aria-describedby={emailError ? 'login-email-error' : undefined}
+                    required
+                  />
+                </div>
+                {emailError && (
+                  <p className="field-error" id="login-email-error" role="alert">
+                    {emailError}
+                  </p>
+                )}
+              </div>
+
+              <div className="field">
+                <div className="field-label-row">
+                  <label htmlFor="login-password">Password</label>
+                  <button
+                    type="button"
+                    className="ghost auth-forgot-link"
+                    onClick={() => {
+                      setError('');
+                      setPostResetMessage('');
+                      setView('forgot');
+                    }}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="password-field input-icon-field">
+                  <Lock size={16} aria-hidden="true" />
+                  <input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    aria-invalid={passwordError ? true : undefined}
+                    aria-describedby={passwordError ? 'login-password-error' : undefined}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword(s => !s)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={0}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {passwordError && (
+                  <p className="field-error" id="login-password-error" role="alert">
+                    {passwordError}
+                  </p>
+                )}
+              </div>
+
+              {error && (
+                <div className="error" role="alert">
+                  {error}
+                </div>
+              )}
+
+              <button className="primary auth-submit" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="spin" /> Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign In <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+        </section>
+
+        <section className="auth-image-panel" aria-hidden="true">
+          <img src={loginPanelPhoto} alt="" className="auth-brand-image" />
+          <div className="auth-image-scrim" />
+        </section>
+      </div>
+
+      <p className="auth-form-footer">
+        <ShieldCheck size={13} /> Your data is encrypted and access-controlled.
+      </p>
     </main>
   );
 }

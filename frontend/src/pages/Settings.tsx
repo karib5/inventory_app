@@ -1,10 +1,8 @@
 import React from 'react';
-import { Bell, Ruler, Tag, Truck, Users, Warehouse as WarehouseIcon } from 'lucide-react';
-import { api, Location, Role, User, Warehouse } from '../api';
-import Warehouses from './Warehouses';
-import WarehouseDetail from './WarehouseDetail';
+import { Bell, Ruler, Tag, Truck, Users } from 'lucide-react';
+import { api, Role, User } from '../api';
 
-type SettingsView = 'home' | 'users' | 'warehouses';
+type SettingsView = 'home' | 'users';
 
 function TeamSection({ token, user, onChanged }: { token: string; user: User; onChanged: () => void }) {
   const [users, setUsers] = React.useState<User[]>([]);
@@ -105,36 +103,13 @@ function TeamSection({ token, user, onChanged }: { token: string; user: User; on
 export default function Settings({
   token,
   user,
-  warehouses,
-  locations,
   onChanged,
-  initialWarehouseId,
 }: {
   token: string;
   user: User;
-  warehouses: Warehouse[];
-  locations: Location[];
   onChanged: () => void;
-  initialWarehouseId?: number | null;
 }) {
   const [view, setView] = React.useState<SettingsView>('home');
-  const [openWarehouseId, setOpenWarehouseId] = React.useState<number | null>(initialWarehouseId ?? null);
-
-  React.useEffect(() => {
-    if (initialWarehouseId) setOpenWarehouseId(initialWarehouseId);
-  }, [initialWarehouseId]);
-
-  if (openWarehouseId !== null) {
-    return (
-      <WarehouseDetail
-        token={token}
-        user={user}
-        warehouseId={openWarehouseId}
-        onBack={() => setOpenWarehouseId(null)}
-        onChanged={onChanged}
-      />
-    );
-  }
 
   if (view === 'users') {
     return (
@@ -143,24 +118,6 @@ export default function Settings({
           ← Back to Settings
         </button>
         <TeamSection token={token} user={user} onChanged={onChanged} />
-      </>
-    );
-  }
-
-  if (view === 'warehouses') {
-    return (
-      <>
-        <button onClick={() => setView('home')} style={{ marginBottom: 16 }}>
-          ← Back to Settings
-        </button>
-        <Warehouses
-          token={token}
-          user={user}
-          warehouses={warehouses}
-          onChanged={onChanged}
-          onOpen={setOpenWarehouseId}
-        />
-        <p style={{ color: 'var(--text-muted)' }}>{locations.length} locations across all warehouses.</p>
       </>
     );
   }
@@ -178,13 +135,6 @@ export default function Settings({
           </span>
           <span className="tile-title">Users & Permissions</span>
           <span className="tile-desc">Manage your team and their roles.</span>
-        </div>
-        <div className="tile" onClick={() => setView('warehouses')}>
-          <span className="tile-icon">
-            <WarehouseIcon size={18} />
-          </span>
-          <span className="tile-title">Warehouses & Locations</span>
-          <span className="tile-desc">Warehouses, areas, racks, shelves and bins.</span>
         </div>
         <div className="tile disabled" title="Coming soon">
           <span className="tile-icon">

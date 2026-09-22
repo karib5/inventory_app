@@ -12,6 +12,7 @@ import Inventory from './Inventory';
 import Operations from './Operations';
 import Reports from './Reports';
 import Settings from './Settings';
+import WarehouseDetail from './WarehouseDetail';
 
 type PageKey = 'dashboard' | 'inventory' | 'operations' | 'reports' | 'settings';
 
@@ -32,7 +33,7 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
   const [modal, setModal] = React.useState<ModalState>({ kind: 'none' });
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
   const [searchOpen, setSearchOpen] = React.useState(false);
-  const [jumpToWarehouseId, setJumpToWarehouseId] = React.useState<number | null>(null);
+  const [openWarehouseId, setOpenWarehouseId] = React.useState<number | null>(null);
   const [inventoryStatusFilter, setInventoryStatusFilter] = React.useState<'low' | 'out' | null>(null);
 
   const canAdjust = user.role === 'company_admin' || user.role === 'manager';
@@ -125,20 +126,32 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
       ) : (
         <>
       {page === 'dashboard' && (
-        <Dashboard
-          token={token}
-          user={user}
-          products={products}
-          warehouses={warehouses}
-          locations={locations}
-          refreshKey={refreshKey}
-          onQuickAction={mode => openStockModal(mode)}
-          onAddProduct={() => openAddProduct()}
-          onViewFiltered={filter => {
-            setInventoryStatusFilter(filter);
-            setPage('inventory');
-          }}
-        />
+        openWarehouseId !== null && isManager ? (
+          <WarehouseDetail
+            token={token}
+            user={user}
+            warehouseId={openWarehouseId}
+            onBack={() => setOpenWarehouseId(null)}
+            onChanged={refresh}
+          />
+        ) : (
+          <Dashboard
+            token={token}
+            user={user}
+            products={products}
+            warehouses={warehouses}
+            locations={locations}
+            refreshKey={refreshKey}
+            onQuickAction={mode => openStockModal(mode)}
+            onAddProduct={() => openAddProduct()}
+            onViewFiltered={filter => {
+              setInventoryStatusFilter(filter);
+              setPage('inventory');
+            }}
+            onOpenWarehouse={setOpenWarehouseId}
+            onWarehousesChanged={refresh}
+          />
+        )
       )}
 
       {page === 'inventory' && (
@@ -159,14 +172,7 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
       {page === 'reports' && isManager && <Reports token={token} products={products} />}
 
       {page === 'settings' && isManager && (
-        <Settings
-          token={token}
-          user={user}
-          warehouses={warehouses}
-          locations={locations}
-          onChanged={refresh}
-          initialWarehouseId={jumpToWarehouseId}
-        />
+        <Settings token={token} user={user} onChanged={refresh} />
       )}
         </>
       )}
@@ -220,8 +226,8 @@ export default function Workspace({ token, user, onLogout }: { token: string; us
           onClose={() => setSearchOpen(false)}
           onSelectProduct={setSelectedProduct}
           onOpenWarehouse={id => {
-            setJumpToWarehouseId(id);
-            setPage('settings');
+            setOpenWarehouseId(id);
+            setPage('dashboard');
           }}
         />
       )}

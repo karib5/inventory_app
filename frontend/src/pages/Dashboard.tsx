@@ -19,6 +19,7 @@ import { api, Location, Product, Transaction, User, Warehouse } from '../api';
 import { StockActionMode } from '../components/StockActionModal';
 import ActivityIcon from '../components/ActivityIcon';
 import { getStockStatus, timeAgo } from '../utils';
+import Warehouses from './Warehouses';
 
 function greeting() {
   const hour = new Date().getHours();
@@ -37,6 +38,8 @@ export default function Dashboard({
   onQuickAction,
   onAddProduct,
   onViewFiltered,
+  onOpenWarehouse,
+  onWarehousesChanged,
 }: {
   token: string;
   user: User;
@@ -47,9 +50,12 @@ export default function Dashboard({
   onQuickAction: (mode: StockActionMode) => void;
   onAddProduct: () => void;
   onViewFiltered: (filter: 'low' | 'out') => void;
+  onOpenWarehouse: (warehouseId: number) => void;
+  onWarehousesChanged: () => void;
 }) {
   const [recent, setRecent] = React.useState<Transaction[]>([]);
   const [showAdvanced, setShowAdvanced] = React.useState(false);
+  const isManager = user.role === 'company_admin' || user.role === 'manager';
 
   React.useEffect(() => {
     api('/inventory/transactions?limit=6', {}, token)
@@ -205,6 +211,16 @@ export default function Dashboard({
           </div>
         )}
       </section>
+
+      {isManager && (
+        <Warehouses
+          token={token}
+          user={user}
+          warehouses={warehouses}
+          onChanged={onWarehousesChanged}
+          onOpen={onOpenWarehouse}
+        />
+      )}
 
       <section className="card">
         <h2>Needs Attention</h2>
